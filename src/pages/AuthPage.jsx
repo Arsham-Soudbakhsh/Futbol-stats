@@ -11,13 +11,13 @@ import { useAuthStore } from "../store/authStore";
 import "../pages/pages.css";
 
 const POSITIONS = [
-  { id: "GK", label: "Goalkeeper", icon: "ti-hand-stop", color: "#8A9683" },
+  { id: "GK", label: "Goalkeeper", icon: "ti-hand-stop", color: "#E8C76A" },
   { id: "DEF", label: "Defender", icon: "ti-shield", color: "#5E8C31" },
   {
     id: "MID",
     label: "Midfielder",
     icon: "ti-arrows-exchange",
-    color: "#D6A23D",
+    color: "#60A5FA",
   },
   { id: "FWD", label: "Forward", icon: "ti-ball-football", color: "#C95B5B" },
 ];
@@ -222,7 +222,7 @@ export default function AuthPage() {
                           background:
                             position === pos.id
                               ? `${pos.color}18`
-                              : "var(--surface-secondary)",
+                              : "var(--primary-soft)",
                           cursor: "pointer",
                           display: "flex",
                           flexDirection: "column",
