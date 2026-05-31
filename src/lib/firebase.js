@@ -217,6 +217,17 @@ export const getWeeklyStats = async (week, year) => {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
+export const getAllStats = async () => {
+  const snap = await getDocs(
+    collection(db, 'weekly_stats')
+  )
+
+  return snap.docs.map(d => ({
+    id: d.id,
+    ...d.data()
+  }))
+}
+
 // ---------- AWARDS ----------
 export const getAwards = async (week, year) => {
   const snap = await getDocs(
