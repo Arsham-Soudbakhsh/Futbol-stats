@@ -47,7 +47,7 @@ export const signUp = async (
   await setDoc(doc(db, "profiles", cred.user.uid), {
     full_name: fullName,
     role,
-    position, // 'GK' | 'DEF' | 'MID' | 'FWD'
+    position,
     team_id: null,
     avatar_url: null,
     created_at: serverTimestamp(),
@@ -171,6 +171,7 @@ export const upsertWeeklySquad = (
     year,
     player_ids: playerIds,
     positions,
+    locked: true,
     updated_at: serverTimestamp(),
   });
 
@@ -218,15 +219,9 @@ export const getWeeklyStats = async (week, year) => {
 };
 
 export const getAllStats = async () => {
-  const snap = await getDocs(
-    collection(db, 'weekly_stats')
-  )
-
-  return snap.docs.map(d => ({
-    id: d.id,
-    ...d.data()
-  }))
-}
+  const snap = await getDocs(collection(db, "weekly_stats"));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
 
 // ---------- AWARDS ----------
 export const getAwards = async (week, year) => {
@@ -237,6 +232,10 @@ export const getAwards = async (week, year) => {
       where("year", "==", year),
     ),
   );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+export const getAllAwards = async () => {
+  const snap = await getDocs(collection(db, "awards"));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
@@ -253,6 +252,8 @@ export const upsertAward = (awardType, playerId, week, year) =>
 const ratingId = (fromId, toId, week, year) =>
   `${fromId}_to_${toId}_w${week}_${year}`;
 
+// NOTE: now also persists `absent` so the UI can restore the "Absent" toggle
+// after a refresh. Old callers that didn't pass `absent` keep working.
 export const upsertRating = (
   fromId,
   toId,
@@ -262,6 +263,7 @@ export const upsertRating = (
   shoot,
   def,
   drib,
+  absent = false,
 ) =>
   setDoc(doc(db, "captain_ratings", ratingId(fromId, toId, week, year)), {
     from_captain_id: fromId,
@@ -272,6 +274,7 @@ export const upsertRating = (
     shooting: shoot,
     defending: def,
     dribbling: drib,
+    absent: !!absent,
     updated_at: serverTimestamp(),
   });
 
@@ -285,6 +288,21 @@ export const getRatingsForPlayer = async (playerId, week, year) => {
     ),
   );
   return snap.docs.map((d) => d.data());
+};
+
+// NEW: load all ratings submitted BY a given captain for a given week/year.
+// Used by CaptainPage to rehydrate the slider state after a refresh, which
+// is what fixes the "save then refresh resets everything" bug.
+export const getRatingsByCaptain = async (fromId, week, year) => {
+  const snap = await getDocs(
+    query(
+      collection(db, "captain_ratings"),
+      where("from_captain_id", "==", fromId),
+      where("week_number", "==", week),
+      where("year", "==", year),
+    ),
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
 export const getAllRatings = async (week = null, year = null) => {
@@ -302,13 +320,10 @@ export const getAllRatings = async (week = null, year = null) => {
 
   const snap = await getDocs(q);
 
-  return snap.docs.map((d) => ({
-    id: d.id,
-    ...d.data(),
-  }));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
-// ---------- INVITE CODES ----------
 
+// ---------- INVITE CODES ----------
 const randomPart = () =>
   Math.random().toString(36).substring(2, 6).toUpperCase();
 
@@ -340,10 +355,7 @@ export const verifyInviteCode = async (code) => {
 
   if (data.used) return null;
 
-  return {
-    id: snap.id,
-    ...data,
-  };
+  return { id: snap.id, ...data };
 };
 
 export const consumeInviteCode = async (code, uid) => {
@@ -355,11 +367,7 @@ export const consumeInviteCode = async (code, uid) => {
 
 export const getInviteCodes = async () => {
   const snap = await getDocs(collection(db, "invite_codes"));
-
-  return snap.docs.map((d) => ({
-    id: d.id,
-    ...d.data(),
-  }));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
 export const deleteInviteCodeById = async (code) => {
