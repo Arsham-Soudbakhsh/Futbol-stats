@@ -115,10 +115,10 @@ export default function TopPlayersPage() {
   const hasRatings = players.some(p => p.avg > 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="tp-page" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}.tp-fade{animation:fadeUp .2s ease both}`}</style>
 
-      <div className="tp-fade" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div className="tp-fade tp-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ padding: '11px 14px', borderBottom: '0.5px solid rgba(0,0,0,.06)', display: 'flex', alignItems: 'center', gap: 7 }}>
           <i className="ti ti-star" style={{ color: G2, fontSize: 15 }} />
           <span style={{ fontSize: 12, fontWeight: 500, color: G1, flex: 1 }}>Top players — overall rating</span>
@@ -131,7 +131,8 @@ export default function TopPlayersPage() {
             No ratings submitted for week {week} yet.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <div className="rt-wrap">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 520 }}>
             <thead>
               <tr style={{ borderBottom: '0.5px solid rgba(0,0,0,.06)' }}>
                 {['#', 'Player', 'Pass', 'Shot', 'Def', 'Drib', 'Avg'].map((h, i) => (
@@ -181,6 +182,7 @@ export default function TopPlayersPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

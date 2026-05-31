@@ -40,12 +40,13 @@ function ValPill({ val, color, bg }) {
 function TableCard({ title, icon, color, pillBg, pillColor, rows, valKey, extraCols }) {
   const max = rows[0] ? valKey(rows[0]) : 1
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+    <div className="tga-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ padding: '11px 14px', borderBottom: '0.5px solid rgba(0,0,0,.06)', display: 'flex', alignItems: 'center', gap: 7 }}>
         <i className={`ti ${icon}`} style={{ color, fontSize: 15 }} />
         <span style={{ fontSize: 12, fontWeight: 500, color: G1, flex: 1 }}>{title}</span>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+      <div className="rt-wrap">
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 320 }}>
         <thead>
           <tr style={{ borderBottom: '0.5px solid rgba(0,0,0,.06)' }}>
             <th style={{ padding: '6px 10px', color: 'var(--text-muted)', fontSize: 10, fontWeight: 500, textAlign: 'center', width: 32 }}>#</th>
@@ -82,6 +83,7 @@ function TableCard({ title, icon, color, pillBg, pillColor, rows, valKey, extraC
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
@@ -116,10 +118,10 @@ export default function TopGAPage() {
   const byGA = [...data].sort((a, b) => b.ga - a.ga).map(p => ({ ...p, _extras: [p.goals, p.assists] }))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="tga-page" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}.tga-fade{animation:fadeUp .2s ease both}`}</style>
 
-      <div className="tga-fade" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div className="tga-fade tga-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <TableCard
           title="Top scorers" icon="ti-ball-football" color={G2}
           pillBg="#e8f7ef" pillColor={G1}

@@ -89,7 +89,7 @@ export default function PointsPage() {
   )
 
   return (
-    <div className="page fade-up">
+    <div className="page fade-up points-page">
       <div className="card">
         <div className="card-title">
           <i className="ti ti-award" />
@@ -97,6 +97,7 @@ export default function PointsPage() {
           <span className="badge">Week {week}</span>
         </div>
 
+        <div className="rt-wrap">
         <table>
           <thead>
             <tr>
@@ -174,7 +175,9 @@ export default function PointsPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
+
 
       {/* Points breakdown legend */}
       <div className="card">
@@ -182,7 +185,7 @@ export default function PointsPage() {
           <i className="ti ti-info-circle" />
           Scoring system
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+        <div className="scoring-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
           {[
             { label: 'Goal', pts: 10, color: 'var(--primary)' },
             { label: 'Assist', pts: 5, color: 'var(--text-secondary)' },
