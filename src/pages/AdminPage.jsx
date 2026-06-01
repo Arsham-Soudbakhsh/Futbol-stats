@@ -16,6 +16,8 @@ import {
   getAllCaptains,
   createTeam,
   assignTeamToCaptain,
+  getAllSquadsForWeek,
+  renameTeam,
 } from "../lib/firebase";
 import { AWARD_LABELS } from "../lib/points";
 import "./pages.css";
@@ -39,6 +41,8 @@ export default function AdminPage() {
   // team-mgmt form
   const [newTeamName, setNewTeamName] = useState("");
   const [assignMap, setAssignMap] = useState({}); // captainId -> teamId
+  const [squads, setSquads] = useState([]);        // weekly_squads for current week
+  const [teamNameEdits, setTeamNameEdits] = useState({}); // teamId -> edited name
 
   if (profile?.role !== "admin")
     return (
@@ -55,6 +59,10 @@ export default function AdminPage() {
     getInviteCodes().then(setInviteCodes);
     getAllCaptains().then(setCaptains);
   }, []);
+
+  useEffect(() => {
+    getAllSquadsForWeek(week, year).then(setSquads);
+  }, [week, year]);
 
   useEffect(() => {
     getWeeklyStats(week, year).then((rows) => {
@@ -168,9 +176,24 @@ export default function AdminPage() {
   };
 
   const reloadTeamsAndCaptains = async () => {
-    const [t, c] = await Promise.all([getTeams(), getAllCaptains()]);
+    const [t, c, sq] = await Promise.all([getTeams(), getAllCaptains(), getAllSquadsForWeek(week, year)]);
     setTeams(t);
     setCaptains(c);
+    setSquads(sq);
+  };
+
+  const handleRenameTeam = async (teamId) => {
+    const name = (teamNameEdits[teamId] || "").trim();
+    if (!name) { setMsg("❌ نام تیم خالی است."); return; }
+    setSaving(true);
+    try {
+      await renameTeam(teamId, name);
+      await reloadTeamsAndCaptains();
+      setMsg("✅ نام تیم بروزرسانی شد!");
+    } catch (e) {
+      setMsg("❌ " + e.message);
+    }
+    setSaving(false);
   };
 
   const handleCreateTeam = async () => {
@@ -483,15 +506,15 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Create new team */}
-          <div style={{ marginBottom: 20 }}>
-            <div className="card-title" style={{ fontSize: 12, marginBottom: 8 }}>
+          {/* ── ۱. ساخت تیم جدید ── */}
+          <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--border)" }}>
+            <div className="card-title" style={{ fontSize: 12, marginBottom: 10 }}>
               <i className="ti ti-plus" /> ساخت تیم جدید
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <input
                 className="admin-input"
-                style={{ flex: 1, minWidth: 180 }}
+                style={{ flex: 1, minWidth: 200 }}
                 type="text"
                 placeholder="نام تیم..."
                 value={newTeamName}
@@ -504,59 +527,91 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Assign captains to teams */}
-          <div style={{ marginBottom: 20 }}>
-            <div className="card-title" style={{ fontSize: 12, marginBottom: 8 }}>
+          {/* ── ۲. assign کاپیتان به تیم ── */}
+          <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--border)" }}>
+            <div className="card-title" style={{ fontSize: 12, marginBottom: 10 }}>
               <i className="ti ti-crown" /> assign کاپیتان به تیم
             </div>
             {captains.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>هیچ کاپیتانی ثبت‌نام نکرده.</div>
             ) : (
               <div className="admin-list">
-                {captains.map((cap) => (
-                  <div key={cap.id} className="admin-row">
-                    <div className="admin-row__head">
-                      <div className="admin-row__name">{cap.full_name}</div>
-                      <div className="admin-row__role" style={{ color: cap.team_id ? "var(--success)" : "var(--text-muted)" }}>
-                        {cap.team_id
-                          ? `✅ ${teams.find(t => t.id === cap.team_id)?.name || cap.team_id}`
-                          : "بدون تیم"}
+                {captains.map((cap) => {
+                  // پیدا کردن squad این کاپیتان برای هفته جاری
+                  const capSquad = squads.find(sq => (sq.player_ids || [])[0] === cap.id);
+                  const squadMembers = capSquad
+                    ? (capSquad.player_ids || []).slice(1).map(id => players.find(p => p.id === id)).filter(Boolean)
+                    : [];
+                  return (
+                    <div key={cap.id} className="admin-row">
+                      <div className="admin-row__head">
+                        <div className="admin-row__name">
+                          <i className="ti ti-crown" style={{ color: "var(--warning)", fontSize: 13 }} /> {cap.full_name}
+                        </div>
+                        <div className="admin-row__role" style={{ color: cap.team_id ? "var(--success)" : "var(--text-muted)" }}>
+                          {cap.team_id
+                            ? `✅ ${teams.find(t => t.id === cap.team_id)?.name || cap.team_id}`
+                            : "بدون تیم"}
+                        </div>
                       </div>
-                    </div>
-                    <div className="admin-fields" style={{ alignItems: "center" }}>
-                      <div className="admin-field" style={{ flex: 1 }}>
-                        <label><i className="ti ti-shield" /> انتخاب تیم</label>
-                        <select
-                          className="admin-input admin-select"
-                          value={assignMap[cap.id] || cap.team_id || ""}
-                          onChange={(e) => setAssignMap(prev => ({ ...prev, [cap.id]: e.target.value }))}
-                        >
-                          <option value="">— بدون تیم —</option>
-                          {teams.map(t => (
-                            <option key={t.id} value={t.id}>{t.name}</option>
+
+                      {/* squad بازیکنان این کاپیتان */}
+                      {squadMembers.length > 0 ? (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "8px 0 10px" }}>
+                          <span style={{ fontSize: 11, color: "var(--text-muted)", alignSelf: "center" }}>
+                            <i className="ti ti-users" /> Squad هفته {week}:
+                          </span>
+                          {squadMembers.map(p => (
+                            <span key={p.id} style={{
+                              fontSize: 11, padding: "3px 9px", borderRadius: 999,
+                              background: "var(--primary-soft)", color: "var(--primary)",
+                              border: "1px solid color-mix(in oklab, var(--primary) 25%, transparent)"
+                            }}>
+                              {p.full_name}
+                            </span>
                           ))}
-                        </select>
-                      </div>
-                      <div className="admin-field" style={{ flexShrink: 0, paddingTop: 20 }}>
-                        <button
-                          className="admin-save"
-                          style={{ padding: "8px 14px" }}
-                          onClick={() => handleAssignCaptain(cap.id)}
-                          disabled={saving}
-                        >
-                          <i className="ti ti-check" /> ذخیره
-                        </button>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "6px 0 8px" }}>
+                          <i className="ti ti-clock" /> هنوز squad ثبت نکرده (هفته {week})
+                        </div>
+                      )}
+
+                      <div className="admin-fields" style={{ alignItems: "flex-end" }}>
+                        <div className="admin-field" style={{ flex: 1 }}>
+                          <label><i className="ti ti-shield" /> انتخاب تیم</label>
+                          <select
+                            className="admin-input admin-select"
+                            value={assignMap[cap.id] ?? cap.team_id ?? ""}
+                            onChange={(e) => setAssignMap(prev => ({ ...prev, [cap.id]: e.target.value }))}
+                          >
+                            <option value="">— بدون تیم —</option>
+                            {teams.map(t => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="admin-field" style={{ flexShrink: 0 }}>
+                          <button
+                            className="admin-save"
+                            style={{ padding: "8px 14px" }}
+                            onClick={() => handleAssignCaptain(cap.id)}
+                            disabled={saving}
+                          >
+                            <i className="ti ti-check" /> ذخیره
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* Teams ready (3 captains) */}
+          {/* ── ۳. وضعیت تیم‌ها + تغییر نام ── */}
           <div>
-            <div className="card-title" style={{ fontSize: 12, marginBottom: 8 }}>
+            <div className="card-title" style={{ fontSize: 12, marginBottom: 10 }}>
               <i className="ti ti-chart-bar" /> وضعیت تیم‌ها
             </div>
             {teams.length === 0 ? (
@@ -566,6 +621,7 @@ export default function AdminPage() {
                 {teams.map(t => {
                   const count = captainsPerTeam[t.id] || 0;
                   const ready = count >= 3;
+                  const teamCaptains = captains.filter(c => c.team_id === t.id);
                   return (
                     <div key={t.id} className="admin-row">
                       <div className="admin-row__head">
@@ -576,11 +632,37 @@ export default function AdminPage() {
                           {count}/3 کاپیتان {ready ? "✅ آماده" : ""}
                         </div>
                       </div>
-                      {ready && (
-                        <div style={{ fontSize: 12, color: "var(--text-muted)", paddingTop: 4 }}>
-                          کاپیتان‌ها: {captains.filter(c => c.team_id === t.id).map(c => c.full_name).join("، ")}
+
+                      {teamCaptains.length > 0 && (
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 10px" }}>
+                          کاپیتان‌ها: {teamCaptains.map(c => c.full_name).join("، ")}
                         </div>
                       )}
+
+                      {/* rename */}
+                      <div className="admin-fields" style={{ alignItems: "flex-end" }}>
+                        <div className="admin-field" style={{ flex: 1 }}>
+                          <label><i className="ti ti-pencil" /> تغییر نام تیم</label>
+                          <input
+                            className="admin-input"
+                            type="text"
+                            placeholder={t.name}
+                            value={teamNameEdits[t.id] ?? ""}
+                            onChange={(e) => setTeamNameEdits(prev => ({ ...prev, [t.id]: e.target.value }))}
+                            onKeyDown={(e) => e.key === "Enter" && handleRenameTeam(t.id)}
+                          />
+                        </div>
+                        <div className="admin-field" style={{ flexShrink: 0 }}>
+                          <button
+                            className="admin-save"
+                            style={{ padding: "8px 14px" }}
+                            onClick={() => handleRenameTeam(t.id)}
+                            disabled={saving || !teamNameEdits[t.id]?.trim()}
+                          >
+                            <i className="ti ti-device-floppy" /> ذخیره نام
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

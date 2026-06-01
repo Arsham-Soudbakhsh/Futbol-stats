@@ -118,6 +118,10 @@ export const createTeam = async (name, captainId) => {
   return ref.id;
 };
 
+export const renameTeam = async (teamId, name) => {
+  await updateDoc(doc(db, "teams", teamId), { name });
+};
+
 // Assign an existing team to a captain profile
 export const assignTeamToCaptain = async (captainId, teamId) => {
   await updateDoc(doc(db, "profiles", captainId), { team_id: teamId });
@@ -219,6 +223,22 @@ export const getAllSquadsForWeek = async (week, year) => {
     ),
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+// پیدا کردن squad یک کاپیتان خاص برای هفته — کاپیتان همیشه اولین عضو player_ids هست
+export const getSquadByCaptain = async (captainId, week, year) => {
+  const snap = await getDocs(
+    query(
+      collection(db, "weekly_squads"),
+      where("week_number", "==", week),
+      where("year", "==", year),
+    ),
+  );
+  const doc = snap.docs.find(d => {
+    const ids = d.data().player_ids || [];
+    return ids[0] === captainId;
+  });
+  return doc ? { id: doc.id, ...doc.data() } : null;
 };
 
 // ---------- WEEKLY STATS ----------
