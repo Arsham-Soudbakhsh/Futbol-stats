@@ -11,7 +11,6 @@ import {
   getRatingsByCaptain,
   createTeam,
 } from "../lib/firebase";
-import { useAuthStore } from "../store/authStore";
 import "./pages.css";
 
 const POS_CONFIG = {
