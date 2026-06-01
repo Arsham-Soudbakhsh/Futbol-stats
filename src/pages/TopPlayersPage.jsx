@@ -1,40 +1,27 @@
 import React, { useContext, useEffect, useState } from "react";
-import { PageLoader } from './Loader'
+import { PageLoader } from "./Loader";
 import { WeekContext } from "./DashboardLayout";
 import { useAuthStore } from "../store/authStore";
 import { getAllRatings, getAllPlayers } from "../lib/firebase";
 import { avgRatings } from "../lib/points";
+import "./pages.css";
 
-const G1 = "var(--text)",
-  G2 = "var(--primary)",
-  G3 = "var(--primary-active)",
-  G4 = "var(--primary-soft)";
-const GOLD = "var(--warning)",
-  GOLD_BG = "var(--bg-secondary)";
+function ratingColor(v) {
+  if (v >= 75) return "var(--success)";
+  if (v >= 55) return "var(--warning)";
+  if (v > 0) return "var(--danger)";
+  return "var(--text-muted)";
+}
 
 function RatingRing({ avg = 0 }) {
   const value = Math.max(0, Math.min(100, avg));
-
-  const r = 15;
-  const cx = 18;
-  const cy = 18;
-
+  const r = 16, cx = 20, cy = 20;
   const circ = 2 * Math.PI * r;
   const dash = (value / 100) * circ;
-
-  const color = value >= 70 ? "#22c55e" : value >= 50 ? "#eab308" : "#ef4444";
-
+  const color = ratingColor(value);
   return (
-    <svg width="36" height="36" viewBox="0 0 36 36">
-      <circle
-        cx={cx}
-        cy={cy}
-        r={r}
-        fill="none"
-        stroke="#e8ede9"
-        strokeWidth="3"
-      />
-
+    <svg width="40" height="40" viewBox="0 0 40 40" style={{ flexShrink: 0 }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth="3" />
       <circle
         cx={cx}
         cy={cy}
@@ -45,14 +32,13 @@ function RatingRing({ avg = 0 }) {
         strokeDasharray={`${dash} ${circ}`}
         strokeDashoffset={circ * 0.25}
         strokeLinecap="round"
-        transform="rotate(-90 18 18)"
+        transform="rotate(-90 20 20)"
       />
-
       <text
         x={cx}
         y={cy + 4}
         textAnchor="middle"
-        fontSize="8"
+        fontSize="11"
         fontWeight="700"
         fill={color}
       >
@@ -62,42 +48,39 @@ function RatingRing({ avg = 0 }) {
   );
 }
 
-function SkillDots({ val, color }) {
-  const filled = Math.round((val / 100) * 5);
+function SkillBar({ val }) {
+  const color = ratingColor(val);
   return (
-    <div style={{ display: "flex", gap: 2, marginTop: 2 }}>
-      {Array.from({ length: 5 }, (_, i) => (
+    <div className="skill-cell">
+      <span className="skill-num" style={{ color }}>{val}</span>
+      <div className="skill-bar">
         <div
-          key={i}
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: "50%",
-            background: i < filled ? color : "var(--bg-secondary)",
-          }}
+          className="skill-bar__fill"
+          style={{ width: `${val}%`, background: color }}
         />
-      ))}
+      </div>
     </div>
   );
 }
 
-function RatingCell({ val, color }) {
+function ModeSwitch({ mode, setMode, week }) {
   return (
-    <td style={{ padding: "8px 6px", textAlign: "center" }}>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 2,
-        }}
+    <div className="mode-switch">
+      <button
+        onClick={() => setMode("week")}
+        className={`mode-btn ${mode === "week" ? "on" : ""}`}
       >
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>
-          {val}
-        </span>
-        <SkillDots val={val} color={color} />
-      </div>
-    </td>
+        <i className="ti ti-calendar-week" />
+        <span>Week {week}</span>
+      </button>
+      <button
+        onClick={() => setMode("total")}
+        className={`mode-btn ${mode === "total" ? "on" : ""}`}
+      >
+        <i className="ti ti-trophy" />
+        <span>Total</span>
+      </button>
+    </div>
   );
 }
 
@@ -114,7 +97,6 @@ export default function TopPlayersPage() {
       mode === "week" ? getAllRatings(week, year) : getAllRatings(),
       getAllPlayers(),
     ]).then(([ratings, allPlayers]) => {
-      // Group ratings by player
       const byPlayer = {};
       ratings.forEach((r) => {
         if (!byPlayer[r.to_player_id]) byPlayer[r.to_player_id] = [];
@@ -122,70 +104,31 @@ export default function TopPlayersPage() {
       });
 
       let result;
-
       if (mode === "week") {
-        result = allPlayers.map((p) => {
-          const r = avgRatings(byPlayer[p.id] || []);
-
-          return {
-            ...p,
-            ...r,
-            me: p.id === profile?.id,
-          };
-        });
+        result = allPlayers.map((p) => ({
+          ...p,
+          ...avgRatings(byPlayer[p.id] || []),
+          me: p.id === profile?.id,
+        }));
       } else {
         result = allPlayers.map((p) => {
           const playerRatings = byPlayer[p.id] || [];
-
-          // گروه‌بندی بر اساس هفته
           const weekGroups = {};
-
           playerRatings.forEach((r) => {
             const w = r.week_number;
-
-            if (!weekGroups[w]) {
-              weekGroups[w] = [];
-            }
-
+            if (!weekGroups[w]) weekGroups[w] = [];
             weekGroups[w].push(r);
           });
-
-          const weeklyAverages = Object.values(weekGroups).map((rs) =>
-            avgRatings(rs),
-          );
-
+          const weeklyAverages = Object.values(weekGroups).map((rs) => avgRatings(rs));
           if (!weeklyAverages.length) {
-            return {
-              ...p,
-              passing: 0,
-              shooting: 0,
-              defending: 0,
-              dribbling: 0,
-              avg: 0,
-              me: p.id === profile?.id,
-            };
+            return { ...p, passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0, me: p.id === profile?.id };
           }
-
-          const passing = Math.round(
-            weeklyAverages.reduce((s, w) => s + w.passing, 0) /
-              weeklyAverages.length,
-          );
-
-          const shooting = Math.round(
-            weeklyAverages.reduce((s, w) => s + w.shooting, 0) /
-              weeklyAverages.length,
-          );
-
-          const defending = Math.round(
-            weeklyAverages.reduce((s, w) => s + w.defending, 0) /
-              weeklyAverages.length,
-          );
-
-          const dribbling = Math.round(
-            weeklyAverages.reduce((s, w) => s + w.dribbling, 0) /
-              weeklyAverages.length,
-          );
-
+          const avg = (key) =>
+            Math.round(weeklyAverages.reduce((s, w) => s + w[key], 0) / weeklyAverages.length);
+          const passing = avg("passing");
+          const shooting = avg("shooting");
+          const defending = avg("defending");
+          const dribbling = avg("dribbling");
           return {
             ...p,
             passing,
@@ -199,7 +142,6 @@ export default function TopPlayersPage() {
       }
 
       result.sort((a, b) => b.avg - a.avg);
-
       setPlayers(result);
       setLoading(false);
     });
@@ -208,255 +150,92 @@ export default function TopPlayersPage() {
   if (loading) return <PageLoader label="Loading ratings" minHeight={260} />;
 
   const hasRatings = players.some((p) => p.avg > 0);
+  const podium = hasRatings ? players.slice(0, 3) : [];
 
   return (
-    <div
-      className="tp-page"
-      style={{ display: "flex", flexDirection: "column", gap: 10 }}
-    >
-      <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}.tp-fade{animation:fadeUp .2s ease both}`}</style>
-
-      <div
-        className="tp-fade tp-card"
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 12,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--border)",
-            borderRadius: 999,
-            padding: 3,
-            gap: 3,
-          }}
-        >
-          <button
-            onClick={() => setMode("week")}
-            style={{
-              border: "none",
-              cursor: "pointer",
-              padding: "6px 12px",
-              borderRadius: 999,
-              fontSize: 11,
-              fontWeight: 600,
-              transition: "all .2s ease",
-              background:
-                mode === "week" ? "var(--gradient-primary)" : "transparent",
-              color: mode === "week" ? "#fff" : "var(--text-muted)",
-            }}
-          >
-            <i className="ti ti-calendar-week" style={{ marginRight: 4 }} />
-            Week {week}
-          </button>
-
-          <button
-            onClick={() => setMode("total")}
-            style={{
-              border: "none",
-              cursor: "pointer",
-              padding: "6px 12px",
-              borderRadius: 999,
-              fontSize: 11,
-              fontWeight: 600,
-              transition: "all .2s ease",
-              background:
-                mode === "total" ? "var(--gradient-primary)" : "transparent",
-              color: mode === "total" ? "#fff" : "var(--text-muted)",
-            }}
-          >
-            <i className="ti ti-trophy" style={{ marginRight: 4 }} />
-            Total
-          </button>
+    <div className="page fade-up tp-page">
+      <div className="tga-toolbar">
+        <div className="card-title" style={{ margin: 0 }}>
+          <i className="ti ti-star" />
+          Top players
         </div>
+        <ModeSwitch mode={mode} setMode={setMode} week={week} />
+      </div>
 
+      {hasRatings && (
+        <div className="podium-grid">
+          {podium.map((p, i) => (
+            <div key={p.id} className={`podium-card podium-${i}`}>
+              <div className="podium-medal">
+                {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
+              </div>
+              <RatingRing avg={p.avg} />
+              <div className="podium-name">
+                {p.full_name}
+                {p.me && <span className="you-tag" style={{ marginLeft: 6 }}>YOU</span>}
+              </div>
+              <div className="podium-meta">
+                P {p.passing} · S {p.shooting} · D {p.defending} · Dr {p.dribbling}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card">
         {!hasRatings ? (
-          <div
-            style={{
-              fontSize: 12,
-              color: "var(--text-muted)",
-              padding: "24px",
-              textAlign: "center",
-            }}
-          >
-            <i
-              className="ti ti-star-off"
-              style={{
-                fontSize: 24,
-                display: "block",
-                marginBottom: 8,
-                color: "var(--border-strong)",
-              }}
-            />
-            No ratings submitted for week {week} yet.
+          <div className="no-stats" style={{ padding: "32px 0" }}>
+            <i className="ti ti-star-off no-stats__icon" />
+            <div className="no-stats__text">
+              No ratings submitted for {mode === "week" ? `week ${week}` : "this season"} yet.
+            </div>
           </div>
         ) : (
           <div className="rt-wrap">
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: 12,
-                minWidth: 520,
-              }}
-            >
+            <table className="tp-table">
               <thead>
-                <tr style={{ borderBottom: "0.5px solid rgba(0,0,0,.06)" }}>
-                  {["#", "Player", "Pass", "Shot", "Def", "Drib", "Avg"].map(
-                    (h, i) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: "7px 6px",
-                          color: "var(--text-muted)",
-                          fontSize: 10,
-                          fontWeight: 500,
-                          textAlign: i <= 1 ? "left" : "center",
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ),
-                  )}
+                <tr>
+                  <th style={{ width: 40, textAlign: "center" }}>#</th>
+                  <th>Player</th>
+                  <th>Pass</th>
+                  <th>Shot</th>
+                  <th>Def</th>
+                  <th>Drib</th>
+                  <th style={{ textAlign: "center", width: 56 }}>Avg</th>
                 </tr>
               </thead>
               <tbody>
                 {players.map((p, i) => {
-                  const isTop3 = i < 3;
-                  const rankColors = [
-                    { bg: "#FFD700", c: GOLD },
-                    { bg: "#868686", c: "var(--text)" },
-                    { bg: "#b45d00", c: "var(--text)" },
-                  ];
-                  const rc = rankColors[i] || {
-                    bg: "var(--surface-secondary)",
-                    c: "var(--text-muted)",
-                  };
-                  const avgColor =
-                    p.avg >= 75 ? G2 : p.avg >= 60 ? G4 : "var(--text-muted)";
-
+                  const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
                   return (
-                    <tr
-                      key={p.id}
-                      style={{
-                        borderBottom: "0.5px solid rgba(0,0,0,.04)",
-                        background: p.me
-                          ? "var(--primary-soft)"
-                          : "transparent",
-                        transition: "background .15s",
-                      }}
-                    >
-                      <td
-                        style={{
-                          padding: "8px 10px",
-                          textAlign: "center",
-                          width: 36,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: "50%",
-                            background: rc.bg,
-                            color: rc.c,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 10,
-                            fontWeight: 700,
-                            margin: "0 auto",
-                          }}
-                        >
-                          {isTop3 ? (i === 0 ? "👑" : i + 1) : i + 1}
+                    <tr key={p.id} className={p.me ? "me" : ""}>
+                      <td style={{ textAlign: "center" }}>
+                        <div className={`rank-pill ${i < 3 ? "rank-top" : ""}`}>
+                          {medal || i + 1}
                         </div>
                       </td>
-                      <td style={{ padding: "8px 10px" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
+                      <td>
+                        <div className="tp-player">
                           <RatingRing avg={p.avg} />
-                          <div>
-                            <div
-                              style={{
-                                fontWeight: p.me ? 600 : 500,
-                                color: G1,
-                                fontSize: 12,
-                              }}
-                            >
-                              {p.full_name}
-                              {p.me && (
-                                <span
-                                  style={{
-                                    fontSize: 9,
-                                    color: G2,
-                                    marginLeft: 4,
-                                  }}
-                                >
-                                  ★ you
-                                </span>
-                              )}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 10,
-                                color: "var(--text-muted)",
-                                marginTop: 1,
-                              }}
-                            >
-                              Avg:{" "}
-                              <span
-                                style={{
-                                  color: "var(--primary)",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {p.avg}
+                          <div className="tp-player__info">
+                            <div className="player-line">
+                              <span className={`player-name ${p.me ? "is-me" : ""}`}>
+                                {p.full_name}
                               </span>
-                              /100
+                              {p.me && <span className="you-tag">YOU</span>}
+                            </div>
+                            <div className="tp-player__sub">
+                              Avg <strong style={{ color: ratingColor(p.avg) }}>{p.avg}</strong>/100
                             </div>
                           </div>
                         </div>
                       </td>
-                      <RatingCell val={p.passing} color={G3} />
-                      <RatingCell val={p.shooting} color={G3} />
-                      <RatingCell val={p.defending} color={G3} />
-                      <RatingCell val={p.dribbling} color={G3} />
-                      <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                        <div
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "3px 12px",
-                            borderRadius: 20,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            background:
-                              i === 0
-                                ? GOLD_BG
-                                : i < 3
-                                  ? "var(--primary-soft)"
-                                  : "var(--surface-secondary)",
-                            color:
-                              i === 0
-                                ? "var(--warning)"
-                                : i < 3
-                                  ? G1
-                                  : "var(--text-muted)",
-                          }}
-                        >
-                          {p.avg}
-                        </div>
+                      <td><SkillBar val={p.passing} /></td>
+                      <td><SkillBar val={p.shooting} /></td>
+                      <td><SkillBar val={p.defending} /></td>
+                      <td><SkillBar val={p.dribbling} /></td>
+                      <td style={{ textAlign: "center" }}>
+                        <span className="pts-total">{p.avg}</span>
                       </td>
                     </tr>
                   );

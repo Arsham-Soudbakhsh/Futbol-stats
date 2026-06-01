@@ -1,16 +1,29 @@
+export const POINTS = {
+  goal: 10,
+  assist: 5,
+  clean_sheet: 20,
+}
+
 export const AWARD_POINTS = {
   best_player_week: 50,
   best_overall: 30,
-  best_goalkeeper: 20,
+  best_goalkeeper: 30,
   best_defender: 20,
   best_midfielder: 20,
   best_striker: 20,
+  top_scorer_week: 35,
+  top_assister_week: 30,
+  best_ga_week: 40,
+  most_cleansheets: 30,
+  best_team_week: 15,
+  // legacy
   team_of_month: 200,
 }
 
 export const calcStatPoints = (stats) => {
   if (!stats) return 0
-  return (stats.goals || 0) * 10 + (stats.assists || 0) * 5 + (stats.clean_sheet ? 10 : 0)
+  const cs = stats.clean_sheets != null ? stats.clean_sheets : (stats.clean_sheet ? 1 : 0)
+  return (stats.goals || 0) * POINTS.goal + (stats.assists || 0) * POINTS.assist + cs * POINTS.clean_sheet
 }
 
 export const calcAwardPoints = (awards) => {
@@ -39,9 +52,13 @@ export const getCurrentYear = () => new Date().getFullYear()
 export const AWARD_LABELS = {
   best_player_week: 'Best player of the week',
   best_overall: 'Best overall',
-  best_goalkeeper: 'Best goalkeeper',
-  best_defender: 'Best defender',
-  best_midfielder: 'Best midfielder',
-  best_striker: 'Best striker',
-  team_of_month: 'Team of the month',
+  best_goalkeeper: 'Best GK of the week',
+  best_defender: 'Best defender of the week',
+  best_midfielder: 'Best midfielder of the week',
+  best_striker: 'Best striker of the week',
+  top_scorer_week: 'Top scorer of the week',
+  top_assister_week: 'Top assister of the week',
+  best_ga_week: 'Best G/A of the week',
+  most_cleansheets: 'Most clean sheets',
+  best_team_week: 'Best team of the week',
 }

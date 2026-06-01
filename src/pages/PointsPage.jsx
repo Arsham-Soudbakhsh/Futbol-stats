@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { PageLoader, SkeletonTable } from './Loader'
+import { PageLoader } from "./Loader";
 import { WeekContext } from "./DashboardLayout";
 import { useAuthStore } from "../store/authStore";
 import {
@@ -9,14 +9,14 @@ import {
   getAllAwards,
   getAllPlayers,
 } from "../lib/firebase";
-import { calcStatPoints, calcAwardPoints, AWARD_LABELS } from "../lib/points";
+import { calcStatPoints, calcAwardPoints } from "../lib/points";
 import "./pages.css";
 
 const POS_CONFIG = {
-  GK: { color: "#8A9683", bg: "rgba(138,150,131,.12)" },
+  GK: { color: "var(--text-secondary)", bg: "var(--bg-secondary)" },
   DEF: { color: "var(--primary)", bg: "var(--primary-soft)" },
-  MID: { color: "var(--warning)", bg: "rgba(214,162,61,.12)" },
-  FWD: { color: "var(--danger)", bg: "rgba(201,91,91,.12)" },
+  MID: { color: "var(--warning)", bg: "color-mix(in oklab, var(--warning) 14%, transparent)" },
+  FWD: { color: "var(--danger)", bg: "color-mix(in oklab, var(--danger) 14%, transparent)" },
 };
 
 function PosBadge({ pos }) {
@@ -32,7 +32,7 @@ function PosBadge({ pos }) {
         background: c.bg,
         color: c.color,
         textTransform: "uppercase",
-        letterSpacing: 0.3,
+        letterSpacing: 0.4,
         flexShrink: 0,
       }}
     >
@@ -40,6 +40,44 @@ function PosBadge({ pos }) {
     </span>
   );
 }
+
+function ModeSwitch({ mode, setMode, week }) {
+  return (
+    <div className="mode-switch">
+      <button
+        onClick={() => setMode("week")}
+        className={`mode-btn ${mode === "week" ? "on" : ""}`}
+      >
+        <i className="ti ti-calendar-week" />
+        <span>Week {week}</span>
+      </button>
+      <button
+        onClick={() => setMode("total")}
+        className={`mode-btn ${mode === "total" ? "on" : ""}`}
+      >
+        <i className="ti ti-trophy" />
+        <span>Total</span>
+      </button>
+    </div>
+  );
+}
+
+const SCORING = [
+  { label: "Goal", pts: 10, icon: "ti-ball-football", color: "var(--primary)" },
+  { label: "Assist", pts: 5, icon: "ti-arrow-big-right", color: "var(--text-secondary)" },
+  { label: "Clean sheet", pts: 20, icon: "ti-shield-check", color: "var(--success)" },
+  { label: "Best player / week", pts: 50, icon: "ti-star", color: "var(--warning)" },
+  { label: "Best G/A / week", pts: 40, icon: "ti-flame", color: "var(--warning)" },
+  { label: "Top scorer / week", pts: 35, icon: "ti-target", color: "var(--warning)" },
+  { label: "Top assister / week", pts: 30, icon: "ti-bolt", color: "var(--warning)" },
+  { label: "Most clean sheets", pts: 30, icon: "ti-lock", color: "var(--warning)" },
+  { label: "Best GK / week", pts: 30, icon: "ti-hand-stop", color: "var(--warning)" },
+  { label: "Best DEF / week", pts: 20, icon: "ti-shield", color: "var(--warning)" },
+  { label: "Best MID / week", pts: 20, icon: "ti-circle-dot", color: "var(--warning)" },
+  { label: "Best STR / week", pts: 20, icon: "ti-rocket", color: "var(--warning)" },
+  { label: "Best overall", pts: 30, icon: "ti-crown", color: "var(--warning)" },
+  { label: "Team of the week", pts: 15, icon: "ti-users-group", color: "var(--warning)" },
+];
 
 export default function PointsPage() {
   const { week, year } = useContext(WeekContext);
@@ -52,22 +90,14 @@ export default function PointsPage() {
     setLoading(true);
     Promise.all([
       mode === "week" ? getWeeklyStats(week, year) : getAllStats(),
-
       mode === "week" ? getAwards(week, year) : getAllAwards(),
-
       getAllPlayers(),
     ]).then(([stats, awards, players]) => {
       const statsMap = {};
-
       stats.forEach((s) => {
         if (!statsMap[s.player_id]) {
-          statsMap[s.player_id] = {
-            goals: 0,
-            assists: 0,
-            clean_sheets: 0,
-          };
+          statsMap[s.player_id] = { goals: 0, assists: 0, clean_sheets: 0 };
         }
-
         if (mode === "week") {
           statsMap[s.player_id] = {
             goals: s.goals || 0,
@@ -103,7 +133,6 @@ export default function PointsPage() {
             statPts,
             awardPts,
             total: statPts + awardPts,
-            awards: aw,
             me: p.id === profile?.id,
           };
         })
@@ -116,320 +145,105 @@ export default function PointsPage() {
 
   const maxPts = rows[0]?.total || 1;
 
-  if (loading)
-    return (
-      <PageLoader label="Loading points" minHeight={220} />
-    );
-
-  if (!rows.length || rows.every((r) => r.total === 0))
-    return (
-      <div className="no-stats fade-up">
-        <i className="ti ti-award no-stats__icon" />
-        <div className="no-stats__text">No data for week {week} yet.</div>
-      </div>
-    );
+  if (loading) return <PageLoader label="Loading points" minHeight={220} />;
 
   return (
     <div className="page fade-up points-page">
       <div className="card">
-        <div className="card-title">
-          <i className="ti ti-award" />
-          Points leaderboard
-        </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            padding: "0 14px 12px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              background: "var(--bg-secondary)",
-              border: "1px solid var(--border)",
-              borderRadius: 999,
-              padding: 3,
-              gap: 3,
-            }}
-          >
-            <button
-              onClick={() => setMode("week")}
-              style={{
-                border: "none",
-                cursor: "pointer",
-                padding: "6px 12px",
-                borderRadius: 999,
-                fontSize: 11,
-                fontWeight: 600,
-                background:
-                  mode === "week" ? "var(--gradient-primary)" : "transparent",
-                color: mode === "week" ? "#fff" : "var(--text-muted)",
-              }}
-            >
-              <i className="ti ti-calendar-week" style={{ marginRight: 4 }} />
-              Week {week}
-            </button>
-
-            <button
-              onClick={() => setMode("total")}
-              style={{
-                border: "none",
-                cursor: "pointer",
-                padding: "6px 12px",
-                borderRadius: 999,
-                fontSize: 11,
-                fontWeight: 600,
-                background:
-                  mode === "total" ? "var(--gradient-primary)" : "transparent",
-                color: mode === "total" ? "#fff" : "var(--text-muted)",
-              }}
-            >
-              <i className="ti ti-trophy" style={{ marginRight: 4 }} />
-              Total
-            </button>
+        <div className="pts-header">
+          <div className="card-title" style={{ margin: 0 }}>
+            <i className="ti ti-award" />
+            Points leaderboard
           </div>
+          <ModeSwitch mode={mode} setMode={setMode} week={week} />
         </div>
 
-        <div className="rt-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th style={{ width: 36 }}>#</th>
-                <th>Player</th>
-                <th className="r">G</th>
-                <th className="r">A</th>
-                <th className="r">CS</th>
-                <th className="r">Awards</th>
-                <th className="r">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => {
-                const rankColors = [
-                  { bg: "rgba(214,162,61,.15)", c: "var(--warning)" },
-                  { bg: "var(--bg-secondary)", c: "var(--text-secondary)" },
-                  { bg: "rgba(201,91,91,.1)", c: "var(--danger)" },
-                ];
-                const rc = rankColors[i] || {
-                  bg: "var(--bg-secondary)",
-                  c: "var(--text-muted)",
-                };
-
-                return (
-                  <tr key={r.id} className={r.me ? "me" : ""}>
-                    {/* Rank */}
-                    <td>
-                      <div
-                        style={{
-                          width: 26,
-                          height: 26,
-                          borderRadius: "50%",
-                          background: rc.bg,
-                          color: rc.c,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: i < 3 ? 11 : 12,
-                          fontWeight: 700,
-                          margin: "0 auto",
-                        }}
-                      >
-                        {i === 0
-                          ? "🥇"
-                          : i === 1
-                            ? "🥈"
-                            : i === 2
-                              ? "🥉"
-                              : i + 1}
-                      </div>
-                    </td>
-
-                    {/* Player */}
-                    <td>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 7,
-                        }}
-                      >
-                        <div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontWeight: r.me ? 600 : 500,
-                                fontSize: 13,
-                              }}
-                            >
+        {!rows.length || rows.every((r) => r.total === 0) ? (
+          <div className="no-stats" style={{ padding: "28px 0" }}>
+            <i className="ti ti-award no-stats__icon" />
+            <div className="no-stats__text">
+              No data for {mode === "week" ? `week ${week}` : "this season"} yet.
+            </div>
+          </div>
+        ) : (
+          <div className="rt-wrap">
+            <table className="pts-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}>#</th>
+                  <th>Player</th>
+                  <th className="r">G</th>
+                  <th className="r">A</th>
+                  <th className="r">CS</th>
+                  <th className="r">Aw</th>
+                  <th className="r">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => {
+                  const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+                  return (
+                    <tr key={r.id} className={r.me ? "me" : ""}>
+                      <td>
+                        <div className={`rank-pill ${i < 3 ? "rank-top" : ""}`}>
+                          {medal || i + 1}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="player-cell">
+                          <div className="player-line">
+                            <span className={`player-name ${r.me ? "is-me" : ""}`}>
                               {r.name}
                             </span>
-                            {r.me && (
-                              <span
-                                style={{
-                                  fontSize: 9,
-                                  color: "var(--primary)",
-                                  fontWeight: 700,
-                                }}
-                              >
-                                YOU
-                              </span>
-                            )}
+                            {r.me && <span className="you-tag">YOU</span>}
                             <PosBadge pos={r.position} />
                           </div>
-                          {/* Points bar */}
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                              marginTop: 4,
-                            }}
-                          >
+                          <div className="player-bar">
                             <div
-                              style={{
-                                width: Math.max(4, (r.total / maxPts) * 120),
-                                height: 3,
-                                borderRadius: 999,
-                                background: "var(--primary)",
-                                transition: "width .5s cubic-bezier(.4,0,.2,1)",
-                              }}
+                              className="player-bar__fill"
+                              style={{ width: `${(r.total / maxPts) * 100}%` }}
                             />
-                            <span
-                              style={{
-                                fontSize: 10,
-                                color: "var(--text-muted)",
-                              }}
-                            >
-                              {r.total} pts
-                            </span>
                           </div>
                         </div>
-                      </div>
-                    </td>
-
-                    {/* Stats */}
-                    <td className="r">
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color:
-                            r.goals > 0
-                              ? "var(--primary)"
-                              : "var(--text-muted)",
-                          fontSize: 13,
-                        }}
-                      >
-                        {r.goals}
-                      </span>
-                    </td>
-                    <td className="r">
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color:
-                            r.assists > 0
-                              ? "var(--text-secondary)"
-                              : "var(--text-muted)",
-                          fontSize: 13,
-                        }}
-                      >
-                        {r.assists}
-                      </span>
-                    </td>
-                    <td className="r">
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color:
-                            r.clean_sheets > 0
-                              ? "var(--success)"
-                              : "var(--text-muted)",
-                          fontSize: 13,
-                        }}
-                      >
-                        {r.clean_sheets}
-                      </span>
-                    </td>
-                    <td className="r">
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color:
-                            r.awardPts > 0
-                              ? "var(--warning)"
-                              : "var(--text-muted)",
-                          fontSize: 13,
-                        }}
-                      >
-                        {r.awardPts}
-                      </span>
-                    </td>
-
-                    {/* Total */}
-                    <td className="r">
-                      <span className="pts-pill">{r.total}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="r">
+                        <span className={`stat-num ${r.goals ? "pos" : ""}`}>{r.goals}</span>
+                      </td>
+                      <td className="r">
+                        <span className={`stat-num ${r.assists ? "neutral" : ""}`}>{r.assists}</span>
+                      </td>
+                      <td className="r">
+                        <span className={`stat-num ${r.clean_sheets ? "ok" : ""}`}>{r.clean_sheets}</span>
+                      </td>
+                      <td className="r">
+                        <span className={`stat-num ${r.awardPts ? "warn" : ""}`}>{r.awardPts}</span>
+                      </td>
+                      <td className="r">
+                        <span className="pts-total">{r.total}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Points breakdown legend */}
+      {/* Scoring legend */}
       <div className="card">
-        <div className="card-title" style={{ marginBottom: 10 }}>
+        <div className="card-title" style={{ marginBottom: 12 }}>
           <i className="ti ti-info-circle" />
           Scoring system
         </div>
-        <div
-          className="scoring-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3,1fr)",
-            gap: 8,
-          }}
-        >
-          {[
-            { label: "Goal", pts: 10, color: "var(--primary)" },
-            { label: "Assist", pts: 5, color: "var(--text-secondary)" },
-            { label: "Clean sheet", pts: 10, color: "var(--success)" },
-            { label: "Best player", pts: 50, color: "var(--warning)" },
-            { label: "Best overall", pts: 30, color: "var(--warning)" },
-            { label: "Team of month", pts: 200, color: "var(--warning)" },
-          ].map((item) => (
-            <div
-              key={item.label}
-              style={{
-                background: "var(--bg-secondary)",
-                borderRadius: 12,
-                padding: "8px 12px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  color: "var(--text-muted)",
-                  fontWeight: 500,
-                }}
-              >
-                {item.label}
+        <div className="scoring-grid">
+          {SCORING.map((item) => (
+            <div key={item.label} className="scoring-item">
+              <span className="scoring-item__icon" style={{ color: item.color }}>
+                <i className={`ti ${item.icon}`} />
               </span>
-              <span
-                style={{ fontSize: 12, fontWeight: 700, color: item.color }}
-              >
+              <span className="scoring-item__label">{item.label}</span>
+              <span className="scoring-item__pts" style={{ color: item.color }}>
                 +{item.pts}
               </span>
             </div>

@@ -663,10 +663,10 @@ tbody tr.me td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
   position: relative;
   z-index: 1;
 }
-/* [data-theme="light"] .auth-card {
+[data-theme="light"] .auth-card {
   background: rgba(255,255,255,.95);
   border-color: var(--border);
-} */
+}
 .auth-card .form-input { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.08); color: #fff; }
 [data-theme="light"] .auth-card .form-input { background: var(--surface); border-color: var(--border); color: var(--text); }
 .auth-card .form-label { color: rgba(255,255,255,.65); }

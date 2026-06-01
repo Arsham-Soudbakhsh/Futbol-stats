@@ -193,7 +193,7 @@ export default function HomePage() {
                 items={[
                   { label:'Goals',    val: (stats?.goals||0)*10,        color:C.brand  },
                   { label:'Assists',  val: (stats?.assists||0)*5,       color:C.brand2 },
-                  { label:'Clean sh.',val: (stats?.clean_sheet?10:0),   color:'#7CC4A1' },
+                  { label:'Clean sh.',val: (stats?.clean_sheet?20:0),   color:'#7CC4A1' },
                   { label:'Awards',   val: awardPts,                    color:C.gold   },
                 ]}
                 total={totalPts}

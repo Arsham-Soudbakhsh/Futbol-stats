@@ -14,7 +14,6 @@ import TopGAPage from './pages/TopGAPage'
 import PointsPage from './pages/PointsPage'
 import AdminPage from './pages/AdminPage'
 import CaptainPage from './pages/CaptainPage'
-import SeedPage from './pages/SeedPage'
 
 function LoadingScreen() {
   return (
@@ -44,7 +43,6 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/seed" element={<SeedPage />} />
         <Route path="/" element={<RequireAuth><DashboardLayout /></RequireAuth>}>
           <Route index element={<HomePage />} />
           <Route path="league" element={<LeaguePage />} />
