@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useMemo } from "react";
-import { PageLoader } from './Loader'
+import { PageLoader } from "./Loader";
 import { WeekContext } from "./DashboardLayout";
 import { createPortal } from "react-dom";
 import { useAuthStore } from "../store/authStore";
@@ -181,30 +181,58 @@ export default function CaptainPage() {
       <div className="page fade-up cp-page">
         <div className="card cp-hero">
           <div className="cp-hero__row">
-            <div className="cp-hero__icon"><i className="ti ti-shield-star" /></div>
+            <div className="cp-hero__icon">
+              <i className="ti ti-shield-star" />
+            </div>
             <div className="cp-hero__text">
               <div className="cp-hero__title">Captain panel</div>
-              <div className="cp-hero__sub">Week {week} · {year}</div>
+              <div className="cp-hero__sub">
+                Week {week} · {year}
+              </div>
             </div>
             <span className="cp-hero__pill">
               <i className="ti ti-crown" /> Captain
             </span>
           </div>
         </div>
-        <div className="card" style={{ padding: "32px 24px", textAlign: "center" }}>
-          <i className="ti ti-clock" style={{ fontSize: 36, color: "var(--text-muted)", display: "block", marginBottom: 12 }} />
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
-            منتظر assign شدن به تیم باشید
+        <div
+          className="card"
+          style={{ padding: "32px 24px", textAlign: "center" }}
+        >
+          <i
+            className="ti ti-clock"
+            style={{
+              fontSize: 36,
+              color: "var(--text-muted)",
+              display: "block",
+              marginBottom: 12,
+            }}
+          />
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "var(--text)",
+              marginBottom: 8,
+            }}
+          >
+            Please wait to be assigned to a team.
           </div>
-          <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
-            ادمین باید شما را به یک تیم اضافه کند.<br />
-            بعد از assign شدن، می‌توانید بازیکنان را انتخاب کنید.
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--text-muted)",
+              lineHeight: 1.6,
+            }}
+          >
+            The admin must add you to a team first.
+            <br />
+            Once assigned, you will be able to select players.
           </div>
         </div>
       </div>
     );
   }
-
 
   const togglePlayer = (id) => {
     if (squadLocked) return;
