@@ -9,7 +9,6 @@ import {
   upsertWeeklySquad,
   upsertRating,
   getRatingsByCaptain,
-  createTeam,
 } from "../lib/firebase";
 import "./pages.css";
 
@@ -89,9 +88,6 @@ export default function CaptainPage() {
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
   const [confirmModal, setConfirmModal] = useState({ open: false, type: null });
-  const [teamNameInput, setTeamNameInput] = useState("");
-  const [creatingTeam, setCreatingTeam] = useState(false);
-  const [teamMsg, setTeamMsg] = useState("");
 
   const isCaptain = profile?.role === "captain";
 
@@ -181,57 +177,28 @@ export default function CaptainPage() {
 
   // ── If captain doesn't have a team yet, show team-creation form ──
   if (!profile?.team_id) {
-    const handleCreateTeam = async () => {
-      const name = teamNameInput.trim();
-      if (!name) { setTeamMsg("err:لطفاً نام تیم را وارد کنید."); return; }
-      setCreatingTeam(true);
-      setTeamMsg("");
-      try {
-        const teamId = await createTeam(name, profile.id);
-        // Update local profile so the page re-renders with team_id
-        if (setProfile) setProfile({ ...profile, team_id: teamId });
-        else window.location.reload();
-      } catch (e) {
-        setTeamMsg("err:" + e.message);
-        setCreatingTeam(false);
-      }
-    };
     return (
       <div className="page fade-up cp-page">
         <div className="card cp-hero">
           <div className="cp-hero__row">
             <div className="cp-hero__icon"><i className="ti ti-shield-star" /></div>
             <div className="cp-hero__text">
-              <div className="cp-hero__title">نام‌گذاری تیم</div>
-              <div className="cp-hero__sub">قبل از انتخاب بازیکنان، یک نام برای تیم خود انتخاب کنید.</div>
+              <div className="cp-hero__title">Captain panel</div>
+              <div className="cp-hero__sub">Week {week} · {year}</div>
             </div>
+            <span className="cp-hero__pill">
+              <i className="ti ti-crown" /> Captain
+            </span>
           </div>
         </div>
-        <div className="card admin-section">
-          <div className="card-title" style={{ margin: 0, marginBottom: 16 }}>
-            <i className="ti ti-shield" /> تیم جدید
+        <div className="card" style={{ padding: "32px 24px", textAlign: "center" }}>
+          <i className="ti ti-clock" style={{ fontSize: 36, color: "var(--text-muted)", display: "block", marginBottom: 12 }} />
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
+            منتظر assign شدن به تیم باشید
           </div>
-          <div className="admin-field" style={{ maxWidth: 360 }}>
-            <label><i className="ti ti-pencil" /> نام تیم</label>
-            <input
-              className="admin-input"
-              type="text"
-              placeholder="مثلاً: Team Alpha"
-              value={teamNameInput}
-              onChange={(e) => setTeamNameInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreateTeam()}
-            />
-          </div>
-          {teamMsg && (
-            <div className={`admin-msg ${teamMsg.startsWith("ok") ? "ok" : "err"}`} style={{ marginTop: 12 }}>
-              {teamMsg.replace(/^(ok|err):/, "")}
-            </div>
-          )}
-          <div className="admin-actions" style={{ marginTop: 16 }}>
-            <button className="admin-save" onClick={handleCreateTeam} disabled={creatingTeam}>
-              <i className="ti ti-plus" />
-              {creatingTeam ? "در حال ساخت..." : "ساخت تیم"}
-            </button>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
+            ادمین باید شما را به یک تیم اضافه کند.<br />
+            بعد از assign شدن، می‌توانید بازیکنان را انتخاب کنید.
           </div>
         </div>
       </div>
