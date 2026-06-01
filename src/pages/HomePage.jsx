@@ -3,7 +3,7 @@ import Loader, { SkeletonStatsGrid } from './Loader'
 import { WeekContext } from './DashboardLayout'
 import { useAuthStore } from '../store/authStore'
 import { getPlayerStats, getAwards, getRatingsForPlayer } from '../lib/firebase'
-import { calcStatPoints, calcAwardPoints, avgRatings, AWARD_LABELS } from '../lib/points'
+import { calcStatPoints, calcAwardPoints, avgRatings, avgRatingsStrict, AWARD_LABELS } from '../lib/points'
 
 /* ===========================================================
    HomePage — Premium Redesign
@@ -57,8 +57,9 @@ export default function HomePage() {
     ]).then(([st, aw, rt]) => {
       setStats(st)
       setAwards((aw || []).filter(a => a.player_id === profile.id))
-      const r = avgRatings(rt || [])
-      setRatings(r)
+      // فقط وقتی هر ۳ کاپیتان ریت دادن (absent نباشن) میانگین حساب می‌کنیم
+      const r = avgRatingsStrict(rt || [], 3) || { passing: 0, shooting: 0, defending: 0, dribbling: 0 }
+      setRatings(avgRatingsStrict(rt || [], 3))   // null اگر کمتر از ۳ ریتر فعال
       setLoading(false)
       requestAnimationFrame(() => setTimeout(() =>
         setSkillFill({ passing: r.passing, shooting: r.shooting, defending: r.defending, dribbling: r.dribbling }), 60))
@@ -81,14 +82,17 @@ export default function HomePage() {
         ])
         const g = st?.goals || 0
         const a = st?.assists || 0
-        const cs = st?.clean_sheet ? 1 : 0
+        const cs = st?.clean_sheets || 0
         const myAw = (aw || []).filter(x => x.player_id === profile.id)
         const ap = calcAwardPoints(myAw)
         const sp = calcStatPoints(st)
         tG+=g; tA+=a; tC+=cs; tAw+=ap
         if (rt && rt.length) {
-          const rr = avgRatings(rt)
-          pS+=rr.passing; sS+=rr.shooting; dS+=rr.defending; drS+=rr.dribbling; rW++
+          // فقط هفته‌هایی که هر ۳ کاپیتان ریت دادن وارد میانگین فصلی می‌شن
+          const rr = avgRatingsStrict(rt, 3)
+          if (rr) {
+            pS+=rr.passing; sS+=rr.shooting; dS+=rr.defending; drS+=rr.dribbling; rW++
+          }
         }
         trend.push({ w, pts: sp + ap, goals: g, assists: a, cs })
       }
@@ -155,7 +159,7 @@ export default function HomePage() {
             <div className="hp-kpis">
               <KPI icon="ti-ball-football" label="Goals"        val={stats?.goals ?? 0}        accent={C.brand}/>
               <KPI icon="ti-arrow-big-right" label="Assists"   val={stats?.assists ?? 0}      accent={C.brand2}/>
-              <KPI icon="ti-shield-check"  label="Clean sheet" val={stats?.clean_sheet?1:0}   accent={C.gold}/>
+              <KPI icon="ti-shield-check"  label="Clean sheet" val={stats?.clean_sheets ?? 0}   accent={C.gold}/>
               <KPI icon="ti-award"         label="Points"      val={totalPts} dark/>
             </div>
           </section>
@@ -193,7 +197,7 @@ export default function HomePage() {
                 items={[
                   { label:'Goals',    val: (stats?.goals||0)*10,        color:C.brand  },
                   { label:'Assists',  val: (stats?.assists||0)*5,       color:C.brand2 },
-                  { label:'Clean sh.',val: (stats?.clean_sheet?20:0),   color:'#7CC4A1' },
+                  { label:'Clean sh.',val: (stats?.clean_sheets || 0),   color:'#7CC4A1' },
                   { label:'Awards',   val: awardPts,                    color:C.gold   },
                 ]}
                 total={totalPts}

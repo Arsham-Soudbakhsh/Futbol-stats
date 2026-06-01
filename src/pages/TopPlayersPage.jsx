@@ -3,7 +3,7 @@ import { PageLoader } from "./Loader";
 import { WeekContext } from "./DashboardLayout";
 import { useAuthStore } from "../store/authStore";
 import { getAllRatings, getAllPlayers } from "../lib/firebase";
-import { avgRatings } from "../lib/points";
+import { avgRatings, avgRatingsStrict } from "../lib/points";
 import "./pages.css";
 
 function ratingColor(v) {
@@ -105,11 +105,11 @@ export default function TopPlayersPage() {
 
       let result;
       if (mode === "week") {
-        result = allPlayers.map((p) => ({
-          ...p,
-          ...avgRatings(byPlayer[p.id] || []),
-          me: p.id === profile?.id,
-        }));
+        result = allPlayers.map((p) => {
+          const strict = avgRatingsStrict(byPlayer[p.id] || [], 3)
+          const r = strict || { passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0 }
+          return { ...p, ...r, me: p.id === profile?.id }
+        });
       } else {
         result = allPlayers.map((p) => {
           const playerRatings = byPlayer[p.id] || [];
@@ -119,7 +119,10 @@ export default function TopPlayersPage() {
             if (!weekGroups[w]) weekGroups[w] = [];
             weekGroups[w].push(r);
           });
-          const weeklyAverages = Object.values(weekGroups).map((rs) => avgRatings(rs));
+          // فقط هفته‌هایی که هر ۳ کاپیتان ریت دادن وارد میانگین فصلی می‌شن
+          const weeklyAverages = Object.values(weekGroups)
+            .map((rs) => avgRatingsStrict(rs, 3))
+            .filter(Boolean);
           if (!weeklyAverages.length) {
             return { ...p, passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0, me: p.id === profile?.id };
           }

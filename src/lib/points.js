@@ -31,20 +31,31 @@ export const calcAwardPoints = (awards) => {
   return awards.reduce((sum, a) => sum + (AWARD_POINTS[a.award_type] || 0), 0)
 }
 
+// avgRatings: فقط رکوردهایی که absent نیستن رو حساب کن.
+// اگر هیچ رکورد معتبری نبود (همه absent یا آرایه خالی) → همه صفر.
 export const avgRatings = (ratings) => {
-  if (!ratings?.length) return { passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0 }
-  const n = ratings.length
-  const sum = ratings.reduce((acc, r) => ({
-    passing: acc.passing + (r.passing || 0),
-    shooting: acc.shooting + (r.shooting || 0),
+  const active = (ratings || []).filter(r => !r.absent)
+  if (!active.length) return { passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0 }
+  const n = active.length
+  const sum = active.reduce((acc, r) => ({
+    passing:   acc.passing   + (r.passing   || 0),
+    shooting:  acc.shooting  + (r.shooting  || 0),
     defending: acc.defending + (r.defending || 0),
     dribbling: acc.dribbling + (r.dribbling || 0),
   }), { passing: 0, shooting: 0, defending: 0, dribbling: 0 })
-  const p = Math.round(sum.passing / n)
-  const s = Math.round(sum.shooting / n)
-  const d = Math.round(sum.defending / n)
+  const p  = Math.round(sum.passing   / n)
+  const s  = Math.round(sum.shooting  / n)
+  const d  = Math.round(sum.defending / n)
   const dr = Math.round(sum.dribbling / n)
   return { passing: p, shooting: s, defending: d, dribbling: dr, avg: Math.round((p+s+d+dr)/4) }
+}
+
+// avgRatingsStrict: مثل avgRatings ولی فقط وقتی دقیقاً requiredCount ریتر فعال داشت
+// مقدار رو برمی‌گردونه، وگرنه null.
+export const avgRatingsStrict = (ratings, requiredCount = 3) => {
+  const active = (ratings || []).filter(r => !r.absent)
+  if (active.length < requiredCount) return null
+  return avgRatings(active)
 }
 
 export const getCurrentYear = () => new Date().getFullYear()

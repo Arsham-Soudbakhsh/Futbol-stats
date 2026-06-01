@@ -9,7 +9,9 @@ import {
   upsertWeeklySquad,
   upsertRating,
   getRatingsByCaptain,
+  createTeam,
 } from "../lib/firebase";
+import { useAuthStore } from "../store/authStore";
 import "./pages.css";
 
 const POS_CONFIG = {
@@ -75,7 +77,7 @@ function ratingTone(v) {
 }
 
 export default function CaptainPage() {
-  const { profile } = useAuthStore();
+  const { profile, setProfile } = useAuthStore();
   const { week, year } = useContext(WeekContext);
   const [tab, setTab] = useState("squad");
   const [allPlayers, setAllPlayers] = useState([]);
@@ -88,6 +90,9 @@ export default function CaptainPage() {
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
   const [confirmModal, setConfirmModal] = useState({ open: false, type: null });
+  const [teamNameInput, setTeamNameInput] = useState("");
+  const [creatingTeam, setCreatingTeam] = useState(false);
+  const [teamMsg, setTeamMsg] = useState("");
 
   const isCaptain = profile?.role === "captain";
 
@@ -174,6 +179,66 @@ export default function CaptainPage() {
       </div>
     );
   }
+
+  // ── If captain doesn't have a team yet, show team-creation form ──
+  if (!profile?.team_id) {
+    const handleCreateTeam = async () => {
+      const name = teamNameInput.trim();
+      if (!name) { setTeamMsg("err:لطفاً نام تیم را وارد کنید."); return; }
+      setCreatingTeam(true);
+      setTeamMsg("");
+      try {
+        const teamId = await createTeam(name, profile.id);
+        // Update local profile so the page re-renders with team_id
+        if (setProfile) setProfile({ ...profile, team_id: teamId });
+        else window.location.reload();
+      } catch (e) {
+        setTeamMsg("err:" + e.message);
+        setCreatingTeam(false);
+      }
+    };
+    return (
+      <div className="page fade-up cp-page">
+        <div className="card cp-hero">
+          <div className="cp-hero__row">
+            <div className="cp-hero__icon"><i className="ti ti-shield-star" /></div>
+            <div className="cp-hero__text">
+              <div className="cp-hero__title">نام‌گذاری تیم</div>
+              <div className="cp-hero__sub">قبل از انتخاب بازیکنان، یک نام برای تیم خود انتخاب کنید.</div>
+            </div>
+          </div>
+        </div>
+        <div className="card admin-section">
+          <div className="card-title" style={{ margin: 0, marginBottom: 16 }}>
+            <i className="ti ti-shield" /> تیم جدید
+          </div>
+          <div className="admin-field" style={{ maxWidth: 360 }}>
+            <label><i className="ti ti-pencil" /> نام تیم</label>
+            <input
+              className="admin-input"
+              type="text"
+              placeholder="مثلاً: Team Alpha"
+              value={teamNameInput}
+              onChange={(e) => setTeamNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCreateTeam()}
+            />
+          </div>
+          {teamMsg && (
+            <div className={`admin-msg ${teamMsg.startsWith("ok") ? "ok" : "err"}`} style={{ marginTop: 12 }}>
+              {teamMsg.replace(/^(ok|err):/, "")}
+            </div>
+          )}
+          <div className="admin-actions" style={{ marginTop: 16 }}>
+            <button className="admin-save" onClick={handleCreateTeam} disabled={creatingTeam}>
+              <i className="ti ti-plus" />
+              {creatingTeam ? "در حال ساخت..." : "ساخت تیم"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   const togglePlayer = (id) => {
     if (squadLocked) return;

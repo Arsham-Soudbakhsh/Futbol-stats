@@ -4,7 +4,7 @@ import { WeekContext } from './DashboardLayout'
 import {
   getAllPlayers, getWeeklyStats, getAllRatings,
 } from '../lib/firebase'
-import { avgRatings } from '../lib/points'
+import { avgRatings, avgRatingsStrict } from '../lib/points'
 
 /* ------------------------------------------------------------------
  *  Best XI of the week — 1-2-1-1 mini formation (GK, 2 DEF, MID, ST)
@@ -68,7 +68,7 @@ export default function BestTeamPage() {
     })
     return players.map(p => {
       const s = statsByPid[p.id] || { goals: 0, assists: 0, clean_sheets: 0 }
-      const r = avgRatings(ratingsByPid[p.id] || [])
+      const r = avgRatingsStrict(ratingsByPid[p.id] || [], 3) || { passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0 }
       return {
         ...p,
         stats: { goals: s.goals || 0, assists: s.assists || 0, clean_sheets: s.clean_sheets || 0 },

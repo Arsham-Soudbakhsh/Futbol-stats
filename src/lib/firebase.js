@@ -106,6 +106,41 @@ export const getTeams = async () => {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
+// Create a new team and optionally assign the captain's team_id
+export const createTeam = async (name, captainId) => {
+  const ref = await addDoc(collection(db, "teams"), {
+    name,
+    created_at: serverTimestamp(),
+  });
+  if (captainId) {
+    await updateDoc(doc(db, "profiles", captainId), { team_id: ref.id });
+  }
+  return ref.id;
+};
+
+// Assign an existing team to a captain profile
+export const assignTeamToCaptain = async (captainId, teamId) => {
+  await updateDoc(doc(db, "profiles", captainId), { team_id: teamId });
+};
+
+// Get all captains that do NOT yet have a team_id assigned
+export const getCaptainsWithoutTeam = async () => {
+  const snap = await getDocs(
+    query(collection(db, "profiles"), where("role", "==", "captain")),
+  );
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((p) => !p.team_id);
+};
+
+// Get all captains (with or without team)
+export const getAllCaptains = async () => {
+  const snap = await getDocs(
+    query(collection(db, "profiles"), where("role", "==", "captain")),
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
 // ---------- TEAM WEEKLY STATS ----------
 const teamStatsId = (teamId, week, year) => `${teamId}_w${week}_${year}`;
 
