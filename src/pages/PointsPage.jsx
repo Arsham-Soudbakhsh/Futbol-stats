@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { PageLoader, SkeletonTable } from './Loader'
 import { WeekContext } from "./DashboardLayout";
 import { useAuthStore } from "../store/authStore";
 import {
@@ -117,11 +118,7 @@ export default function PointsPage() {
 
   if (loading)
     return (
-      <div className="loading-inline fade-up">
-        <div className="loading-inline__dot" />
-        <div className="loading-inline__dot" />
-        <div className="loading-inline__dot" />
-      </div>
+      <PageLoader label="Loading points" minHeight={220} />
     );
 
   if (!rows.length || rows.every((r) => r.total === 0))

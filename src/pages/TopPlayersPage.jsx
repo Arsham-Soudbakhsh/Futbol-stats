@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { PageLoader } from './Loader'
 import { WeekContext } from "./DashboardLayout";
 import { useAuthStore } from "../store/authStore";
 import { getAllRatings, getAllPlayers } from "../lib/firebase";
@@ -204,12 +205,7 @@ export default function TopPlayersPage() {
     });
   }, [week, year, profile, mode]);
 
-  if (loading)
-    return (
-      <div style={{ fontSize: 12, color: "var(--text-muted)", padding: 16 }}>
-        Loading…
-      </div>
-    );
+  if (loading) return <PageLoader label="Loading ratings" minHeight={260} />;
 
   const hasRatings = players.some((p) => p.avg > 0);
 

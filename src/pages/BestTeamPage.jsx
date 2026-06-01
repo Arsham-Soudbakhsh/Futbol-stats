@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
+import { PageLoader } from './Loader'
 import { WeekContext } from './DashboardLayout'
 import {
   getAllPlayers, getWeeklyStats, getAllRatings,
@@ -155,9 +156,7 @@ export default function BestTeamPage() {
           </div>
 
           {loading ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '40px 0', textAlign: 'center' }}>
-              Loading best team…
-            </div>
+            <PageLoader label="Building best XI" minHeight={200} />
           ) : filledCount === 0 ? (
             <div className="bt-empty-state">
               <i className="ti ti-ball-football" style={{ fontSize: 32, opacity: .4, display: 'block', marginBottom: 8 }} />
@@ -244,7 +243,7 @@ export default function BestTeamPage() {
           </div>
 
           {loading ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
+            <PageLoader label="Loading squad" minHeight={160} />
           ) : filledCount === 0 ? (
             <div className="bt-empty-state">
               <i className="ti ti-users" style={{ fontSize: 24, opacity: .4, display: 'block', marginBottom: 6 }} />

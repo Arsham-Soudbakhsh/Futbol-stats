@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { PageLoader } from './Loader'
 import { WeekContext } from "./DashboardLayout";
 import { useAuthStore } from "../store/authStore";
 import {
@@ -314,9 +315,7 @@ export default function AdminPage() {
           </div>
 
           {players.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              Loading players…
-            </div>
+            <PageLoader label="Loading players" minHeight={160} />
           ) : (
             players.map((p) => {
               const s = statsForm[p.id] || {
@@ -443,9 +442,7 @@ export default function AdminPage() {
           </div>
 
           {teams.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              Loading teams…
-            </div>
+            <PageLoader label="Loading teams" minHeight={140} />
           ) : (
             teams.map((t) => {
               const s = teamForm[t.id] || {

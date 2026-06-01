@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { PageLoader } from './Loader'
 import { WeekContext } from "./DashboardLayout";
 import { useAuthStore } from "../store/authStore";
 import { getWeeklyStats, getAllStats, getAllPlayers } from "../lib/firebase";
@@ -302,12 +303,7 @@ export default function TopGAPage() {
     });
   }, [week, year, profile, mode]);
 
-  if (loading)
-    return (
-      <div style={{ fontSize: 12, color: "var(--text-muted)", padding: 16 }}>
-        Loading…
-      </div>
-    );
+  if (loading) return <PageLoader label="Loading stats" minHeight={260} />;
 
   const byGoal = [...data].sort((a, b) => b.goals - a.goals);
   const byAssist = [...data].sort((a, b) => b.assists - a.assists);

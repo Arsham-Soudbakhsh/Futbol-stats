@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
+import { PageLoader, SkeletonTable } from './Loader'
 import { WeekContext } from './DashboardLayout'
 import { useAuthStore } from '../store/authStore'
 import {
@@ -141,7 +142,7 @@ export default function LeaguePage() {
         </div>
 
         {loading ? (
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading…</div>
+          <PageLoader label="Loading league" minHeight={180} />
         ) : !hasData ? (
           <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '20px 0', textAlign: 'center' }}>
             <i className="ti ti-database-off" style={{ fontSize: 24, display: 'block', marginBottom: 8, color: 'var(--border-strong)' }} />
@@ -322,7 +323,7 @@ function TeamDetail({ teamId, teamName, week, year, viewMode }) {
           {teamName} — lineup
         </div>
         {loading ? (
-          <div className="lt-empty-state">Loading lineup…</div>
+          <PageLoader label="Loading lineup" minHeight={140} />
         ) : !players.length ? (
           <div className="lt-empty-state">No players assigned to this team yet.</div>
         ) : (
@@ -363,7 +364,7 @@ function TeamDetail({ teamId, teamName, week, year, viewMode }) {
           </span>
         </div>
         {loading ? (
-          <div className="lt-empty-state">Loading…</div>
+          <PageLoader label="Loading" minHeight={120} />
         ) : !perPlayer.length ? (
           <div className="lt-empty-state">No players for this team.</div>
         ) : (
