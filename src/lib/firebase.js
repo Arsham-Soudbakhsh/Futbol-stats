@@ -294,6 +294,7 @@ export const getAllAwards = async () => {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
+// Single-player award (all award types except best_team_week)
 export const upsertAward = (awardType, playerId, week, year) =>
   setDoc(doc(db, "awards", `${awardType}_w${week}_${year}`), {
     award_type: awardType,
@@ -302,6 +303,20 @@ export const upsertAward = (awardType, playerId, week, year) =>
     year,
     updated_at: serverTimestamp(),
   });
+
+// Multi-player award for best_team_week (saves up to 5 players as player_ids array)
+export const upsertTeamOfWeekAward = async (playerIds, week, year) => {
+  const ids = (playerIds || []).filter(Boolean).slice(0, 5);
+  return setDoc(doc(db, "awards", `best_team_week_w${week}_${year}`), {
+    award_type: "best_team_week",
+    player_ids: ids,
+    // keep player_id as first entry for backwards compat
+    player_id: ids[0] || null,
+    week_number: week,
+    year,
+    updated_at: serverTimestamp(),
+  });
+};
 
 // ---------- CAPTAIN RATINGS ----------
 const ratingId = (fromId, toId, week, year) =>

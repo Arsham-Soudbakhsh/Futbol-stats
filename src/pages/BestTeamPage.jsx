@@ -4,20 +4,21 @@ import { WeekContext } from './DashboardLayout'
 import {
   getAllPlayers, getWeeklyStats, getAllRatings,
 } from '../lib/firebase'
-import { avgRatings, avgRatingsStrict } from '../lib/points'
+import { avgRatingsStrict } from '../lib/points'
 
 /* ------------------------------------------------------------------
- *  Best XI of the week — 1-2-1-1 mini formation (GK, 2 DEF, MID, ST)
- *  Players don't have a position field, so we DERIVE positions from
- *  their week ratings + stats and pick the best at each slot.
+ *  Best XI — picks best player PER POSITION (GK, DEF, MID, ST)
+ *  Only players who selected that position are eligible.
+ *  If a position has multiple players, the one with the highest
+ *  position-specific score wins.
  * -----------------------------------------------------------------*/
 
 const POSITIONS = [
-  { slot: 'ST',  pos: 'ST',  x: 50, y: 16 },
-  { slot: 'MID', pos: 'MID', x: 50, y: 42 },
+  { slot: 'ST',   pos: 'ST',  x: 50, y: 16 },
+  { slot: 'MID',  pos: 'MID', x: 50, y: 42 },
   { slot: 'DEF1', pos: 'DEF', x: 30, y: 68 },
   { slot: 'DEF2', pos: 'DEF', x: 70, y: 68 },
-  { slot: 'GK',  pos: 'GK',  x: 50, y: 88 },
+  { slot: 'GK',   pos: 'GK',  x: 50, y: 88 },
 ]
 
 const POS_CLASS = { ST: 'pos-fwd', MID: 'pos-mid', DEF: 'pos-def', GK: 'pos-gk' }
@@ -28,12 +29,23 @@ const POS_COLOR = {
   GK:  'linear-gradient(135deg,#f39c12,#b9770e)',
 }
 
-// score formulas — heavier on the slot's own metric
+// Score formula per position — same as before
 const score = {
   GK:  (s, r) => (s.clean_sheets || 0) * 10 + (r.defending || 0) * 0.3,
   DEF: (s, r) => (r.defending || 0) * 1.0 + (s.clean_sheets || 0) * 4 + (s.assists || 0) * 1.5,
   MID: (s, r) => ((r.passing || 0) + (r.dribbling || 0)) * 0.5 + (s.assists || 0) * 5 + (s.goals || 0) * 2,
   ST:  (s, r) => (r.shooting || 0) * 1.0 + (s.goals || 0) * 8 + (s.assists || 0) * 3,
+}
+
+// Normalize position string from Firebase (e.g. "striker" → "ST", "def" → "DEF")
+const normalizePos = (raw) => {
+  if (!raw) return null
+  const p = raw.toString().toLowerCase().trim()
+  if (p === 'gk' || p === 'goalkeeper') return 'GK'
+  if (p === 'def' || p === 'defender' || p === 'cb' || p === 'lb' || p === 'rb') return 'DEF'
+  if (p === 'mid' || p === 'midfielder' || p === 'cm' || p === 'am' || p === 'dm') return 'MID'
+  if (p === 'st' || p === 'striker' || p === 'fw' || p === 'fwd' || p === 'forward' || p === 'att') return 'ST'
+  return p.toUpperCase()
 }
 
 export default function BestTeamPage() {
@@ -43,6 +55,8 @@ export default function BestTeamPage() {
   const [ratings, setRatings] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
+  // Which position tab is focused in the ranking list
+  const [activeTab, setActiveTab] = useState('ST')
 
   useEffect(() => {
     setLoading(true)
@@ -64,43 +78,61 @@ export default function BestTeamPage() {
     const statsByPid = Object.fromEntries(stats.map(s => [s.player_id, s]))
     const ratingsByPid = {}
     ratings.forEach(r => {
-      (ratingsByPid[r.to_player_id] ||= []).push(r)
+      ;(ratingsByPid[r.to_player_id] ||= []).push(r)
     })
     return players.map(p => {
       const s = statsByPid[p.id] || { goals: 0, assists: 0, clean_sheets: 0 }
       const r = avgRatingsStrict(ratingsByPid[p.id] || [], 3) || { passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0 }
+      const pos = normalizePos(p.position)
       return {
         ...p,
+        position_normalized: pos,
         stats: { goals: s.goals || 0, assists: s.assists || 0, clean_sheets: s.clean_sheets || 0 },
         ratings: r,
         scores: {
-          GK: score.GK(s, r), DEF: score.DEF(s, r),
-          MID: score.MID(s, r), ST: score.ST(s, r),
+          GK:  score.GK(s, r),
+          DEF: score.DEF(s, r),
+          MID: score.MID(s, r),
+          ST:  score.ST(s, r),
         },
       }
     })
   }, [players, stats, ratings])
 
-  // Pick best XI: GK → 2× DEF → MID → ST, no reuse
-  const bestXI = useMemo(() => {
-    const used = new Set()
-    const pick = (slotPos) => {
-      const pool = enriched.filter(p => !used.has(p.id) && p.scores[slotPos] > 0)
-      if (pool.length === 0) return null
-      const best = [...pool].sort((a, b) => b.scores[slotPos] - a.scores[slotPos])[0]
-      used.add(best.id)
-      return best
-    }
-    return {
-      GK:  pick('GK'),
-      DEF1: pick('DEF'),
-      DEF2: pick('DEF'),
-      MID: pick('MID'),
-      ST:  pick('ST'),
-    }
+  // Group players by their declared position
+  const byPosition = useMemo(() => {
+    const groups = { GK: [], DEF: [], MID: [], ST: [] }
+    enriched.forEach(p => {
+      const pos = p.position_normalized
+      if (pos && groups[pos]) groups[pos].push(p)
+    })
+    // Sort each group by their position score (descending)
+    Object.keys(groups).forEach(pos => {
+      groups[pos].sort((a, b) => b.scores[pos] - a.scores[pos])
+    })
+    return groups
   }, [enriched])
 
+  // Best XI: best player from each position group (no reuse)
+  // DEF gets 2 slots — top 2 defenders
+  const bestXI = useMemo(() => {
+    const gkPool  = byPosition.GK
+    const defPool = byPosition.DEF
+    const midPool = byPosition.MID
+    const stPool  = byPosition.ST
+    return {
+      GK:   gkPool[0]  || null,
+      DEF1: defPool[0] || null,
+      DEF2: defPool[1] || null,
+      MID:  midPool[0] || null,
+      ST:   stPool[0]  || null,
+    }
+  }, [byPosition])
+
   const filledCount = Object.values(bestXI).filter(Boolean).length
+
+  const TABS = ['ST', 'MID', 'DEF', 'GK']
+  const tabLabel = { ST: 'Striker', MID: 'Midfielder', DEF: 'Defender', GK: 'Goalkeeper' }
 
   return (
     <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -133,17 +165,28 @@ export default function BestTeamPage() {
           border:1px solid var(--border)}
         .bt-stat-val{font-size:15px;font-weight:700;color:var(--primary);font-family:'DM Mono',monospace}
         .bt-stat-lbl{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-        .bt-list-row{display:flex;align-items:center;gap:10px;padding:10px 4px;
-          border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
-        .bt-list-row:last-child{border-bottom:none}
-        .bt-list-row:hover{background:var(--primary-soft)}
-        .bt-list-row.active{background:var(--primary-soft)}
-        .bt-rank{width:24px;height:24px;border-radius:6px;background:var(--bg-secondary);
-          display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;
+
+        /* Position tabs */
+        .pos-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+        .pos-tab{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.5px;
+          border:1px solid var(--border);background:var(--surface);color:var(--text-muted);
+          cursor:pointer;transition:all .15s;text-transform:uppercase}
+        .pos-tab.active-tab{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+        /* Player ranking list */
+        .bt-rank-row{display:flex;align-items:center;gap:10px;padding:9px 6px;
+          border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-radius:6px}
+        .bt-rank-row:last-child{border-bottom:none}
+        .bt-rank-row:hover{background:var(--primary-soft)}
+        .bt-rank-row.active{background:var(--primary-soft)}
+        .bt-rank-num{width:22px;height:22px;border-radius:6px;background:var(--bg-secondary);
+          display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
           color:var(--text-secondary);font-family:'DM Mono',monospace;flex-shrink:0}
-        .bt-pos-pill{font-size:9px;padding:2px 7px;border-radius:4px;font-weight:700;
-          letter-spacing:.6px;color:#fff}
+        .bt-rank-num.gold{background:linear-gradient(135deg,#f39c12,#e67e22);color:#fff}
+        .bt-crown{font-size:10px;margin-left:3px}
         .bt-empty-state{padding:24px 16px;text-align:center;color:var(--text-muted);font-size:13px}
+        .no-pos-badge{font-size:10px;padding:2px 8px;border-radius:4px;
+          background:var(--bg-secondary);color:var(--text-muted);font-style:italic}
       `}</style>
 
       <div className="bt-grid">
@@ -161,7 +204,7 @@ export default function BestTeamPage() {
             <div className="bt-empty-state">
               <i className="ti ti-ball-football" style={{ fontSize: 32, opacity: .4, display: 'block', marginBottom: 8 }} />
               No data for week {week} yet.<br />
-              <span style={{ fontSize: 11 }}>Stats & captain ratings need to be entered first.</span>
+              <span style={{ fontSize: 11 }}>Stats & ratings need to be entered first.</span>
             </div>
           ) : (
             <>
@@ -204,8 +247,8 @@ export default function BestTeamPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{selected.full_name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, textTransform: 'capitalize' }}>
-                        {selected.role}
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '.5px' }}>
+                        {selected.position_normalized || selected.role}
                       </div>
                     </div>
                     <button
@@ -234,59 +277,109 @@ export default function BestTeamPage() {
           )}
         </div>
 
-        {/* ── Squad list ── */}
+        {/* ── Position Rankings ── */}
         <div className="card">
           <div className="card-title">
-            <i className="ti ti-list-details" />
-            Squad
-            <span className="badge">{filledCount}/5</span>
+            <i className="ti ti-trophy" />
+            Position Rankings
+            <span className="badge">Week {week}</span>
           </div>
 
           {loading ? (
-            <PageLoader label="Loading squad" minHeight={160} />
-          ) : filledCount === 0 ? (
-            <div className="bt-empty-state">
-              <i className="ti ti-users" style={{ fontSize: 24, opacity: .4, display: 'block', marginBottom: 6 }} />
-              Best XI will appear once stats & ratings are submitted.
-            </div>
+            <PageLoader label="Loading rankings" minHeight={160} />
           ) : (
             <>
-              {POSITIONS.map((slot, i) => {
-                const p = bestXI[slot.slot]
-                if (!p) return (
-                  <div key={slot.slot} className="bt-list-row" style={{ opacity: .5, cursor: 'default' }}>
-                    <div className="bt-rank">{i + 1}</div>
-                    <div style={{ flex: 1, fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      No qualifying {slot.pos.toLowerCase()}
-                    </div>
-                    <span className={`pos ${POS_CLASS[slot.pos]}`}>{slot.pos}</span>
-                  </div>
-                )
-                const isActive = selected?.id === p.id
-                return (
-                  <div
-                    key={slot.slot}
-                    className={`bt-list-row${isActive ? ' active' : ''}`}
-                    onClick={() => setSelected(selected?.id === p.id ? null : p)}
+              {/* Position tabs */}
+              <div className="pos-tabs">
+                {TABS.map(tab => (
+                  <button
+                    key={tab}
+                    className={`pos-tab${activeTab === tab ? ' active-tab' : ''}`}
+                    onClick={() => { setActiveTab(tab); setSelected(null) }}
                   >
-                    <div className="bt-rank">{i + 1}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{p.full_name}</div>
-                      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1, fontFamily: 'DM Mono, monospace' }}>
-                        {p.stats.goals}G · {p.stats.assists}A · {p.stats.clean_sheets}CS · {p.ratings.avg} OVR
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab label */}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, letterSpacing: '.3px' }}>
+                {tabLabel[activeTab]}s ranked by performance
+                <span style={{ marginLeft: 6, background: 'var(--bg-secondary)', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontFamily: 'DM Mono, monospace' }}>
+                  {byPosition[activeTab]?.length || 0} players
+                </span>
+              </div>
+
+              {/* Player list for active tab */}
+              {byPosition[activeTab]?.length === 0 ? (
+                <div className="bt-empty-state" style={{ padding: '16px 0' }}>
+                  <i className="ti ti-users" style={{ fontSize: 22, opacity: .3, display: 'block', marginBottom: 6 }} />
+                  No {tabLabel[activeTab].toLowerCase()}s registered yet.
+                </div>
+              ) : (
+                <>
+                  {byPosition[activeTab].map((p, idx) => {
+                    const isWinner = idx === 0
+                    const isActive = selected?.id === p.id
+                    const posScore = Math.round(p.scores[activeTab])
+                    return (
+                      <div
+                        key={p.id}
+                        className={`bt-rank-row${isActive ? ' active' : ''}`}
+                        onClick={() => setSelected(selected?.id === p.id ? null : p)}
+                      >
+                        <div className={`bt-rank-num${isWinner ? ' gold' : ''}`}>
+                          {isWinner ? '👑' : idx + 1}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {p.full_name}
+                            {isWinner && (
+                              <span style={{
+                                fontSize: 9, padding: '1px 6px', borderRadius: 4,
+                                background: 'linear-gradient(135deg,#f39c12,#e67e22)',
+                                color: '#fff', fontWeight: 700, letterSpacing: '.4px'
+                              }}>BEST {activeTab}</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1, fontFamily: 'DM Mono, monospace' }}>
+                            {p.stats.goals}G · {p.stats.assists}A · {p.stats.clean_sheets}CS · {p.ratings.avg} OVR
+                          </div>
+                        </div>
+                        <span className="pts-pill" title="Position score">
+                          {posScore}
+                        </span>
                       </div>
-                    </div>
-                    <span className={`pos ${POS_CLASS[slot.pos]}`}>{slot.pos}</span>
-                    <span className="pts-pill" title="Slot score">
-                      {Math.round(p.scores[slot.pos === 'DEF' ? 'DEF' : slot.pos])}
-                    </span>
+                    )
+                  })}
+
+                  {/* Score formula explanation */}
+                  <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: 8, fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                    <strong style={{ color: 'var(--text-secondary)' }}>Score formula ({activeTab}):</strong><br />
+                    {activeTab === 'GK'  && 'Clean sheets × 10 + Defending rating × 0.3'}
+                    {activeTab === 'DEF' && 'Defending × 1.0 + Clean sheets × 4 + Assists × 1.5'}
+                    {activeTab === 'MID' && '(Passing + Dribbling) × 0.5 + Assists × 5 + Goals × 2'}
+                    {activeTab === 'ST'  && 'Shooting × 1.0 + Goals × 8 + Assists × 3'}
+                  </div>
+                </>
+              )}
+
+              {/* Players with no position set */}
+              {(() => {
+                const noPos = enriched.filter(p => !p.position_normalized || !['GK','DEF','MID','ST'].includes(p.position_normalized))
+                if (!noPos.length) return null
+                return (
+                  <div style={{ marginTop: 14, padding: '8px 10px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>⚠ No position set</div>
+                    {noPos.map(p => (
+                      <div key={p.id} style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 0' }}>
+                        {p.full_name}
+                        <span style={{ marginLeft: 6, fontSize: 9, opacity: .6 }}>({p.position || 'unknown'})</span>
+                      </div>
+                    ))}
                   </div>
                 )
-              })}
-              <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: 8, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                <strong style={{ color: 'var(--text-secondary)' }}>How it's calculated:</strong><br />
-                GK: cleansheets weighted heavily · DEF: defending rating + CS · MID: passing+dribbling + assists · ST: shooting + goals
-              </div>
+              })()}
             </>
           )}
         </div>
@@ -296,7 +389,6 @@ export default function BestTeamPage() {
 }
 
 function FieldSVG() {
-  // Vertical pitch (3:4)
   return (
     <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} viewBox="0 0 300 400" preserveAspectRatio="none">
       <defs>
@@ -314,13 +406,10 @@ function FieldSVG() {
       <line x1="10" y1="200" x2="290" y2="200" stroke="rgba(255,255,255,.3)" strokeWidth="1.2" />
       <circle cx="150" cy="200" r="42" stroke="rgba(255,255,255,.28)" strokeWidth="1.2" fill="none" />
       <circle cx="150" cy="200" r="2.5" fill="rgba(255,255,255,.4)" />
-      {/* Top box (ST attacks) */}
       <rect x="80" y="10" width="140" height="50" stroke="rgba(255,255,255,.28)" strokeWidth="1.2" fill="none" />
       <rect x="115" y="10" width="70" height="20" stroke="rgba(255,255,255,.22)" strokeWidth="1" fill="none" />
-      {/* Bottom box (GK) */}
       <rect x="80" y="340" width="140" height="50" stroke="rgba(255,255,255,.28)" strokeWidth="1.2" fill="none" />
       <rect x="115" y="370" width="70" height="20" stroke="rgba(255,255,255,.22)" strokeWidth="1" fill="none" />
-      {/* Penalty spots */}
       <circle cx="150" cy="45" r="1.8" fill="rgba(255,255,255,.4)" />
       <circle cx="150" cy="355" r="1.8" fill="rgba(255,255,255,.4)" />
     </svg>

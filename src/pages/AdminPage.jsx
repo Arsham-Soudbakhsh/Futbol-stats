@@ -5,8 +5,10 @@ import { useAuthStore } from "../store/authStore";
 import {
   getAllPlayers,
   getWeeklyStats,
+  getAwards,
   upsertStats,
   upsertAward,
+  upsertTeamOfWeekAward,
   getTeams,
   getTeamWeeklyStats,
   upsertTeamWeeklyStats,
@@ -34,6 +36,8 @@ export default function AdminPage() {
   const [statsForm, setStatsForm] = useState({});
   const [teamForm, setTeamForm] = useState({});
   const [awardForm, setAwardForm] = useState({});
+  const [teamOfWeekForm, setTeamOfWeekForm] = useState(["", "", "", "", ""]); // 5 slots for best_team_week
+  const [existingAwards, setExistingAwards] = useState([]); // awards already saved for this week
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [inviteCodes, setInviteCodes] = useState([]);
@@ -62,6 +66,26 @@ export default function AdminPage() {
 
   useEffect(() => {
     getAllSquadsForWeek(week, year).then(setSquads);
+    // Load existing awards for this week so admin can see who got what
+    getAwards(week, year).then((awards) => {
+      setExistingAwards(awards);
+      // Pre-fill single-player award form
+      const form = {};
+      awards.forEach((a) => {
+        if (a.award_type !== "best_team_week") {
+          form[a.award_type] = a.player_id || "";
+        }
+      });
+      setAwardForm(form);
+      // Pre-fill best_team_week (multi)
+      const teamAward = awards.find((a) => a.award_type === "best_team_week");
+      if (teamAward?.player_ids) {
+        const filled = [...(teamAward.player_ids), "", "", "", "", ""].slice(0, 5);
+        setTeamOfWeekForm(filled);
+      } else {
+        setTeamOfWeekForm(["", "", "", "", ""]);
+      }
+    });
   }, [week, year]);
 
   useEffect(() => {
@@ -148,10 +172,19 @@ export default function AdminPage() {
     setSaving(true);
     setMsg("");
     try {
+      // Save single-player awards (skip best_team_week — handled separately)
       for (const [type, pid] of Object.entries(awardForm)) {
-        if (!pid) continue;
+        if (!pid || type === "best_team_week") continue;
         await upsertAward(type, pid, week, year);
       }
+      // Save best_team_week (multi-player, up to 5)
+      const teamIds = teamOfWeekForm.filter(Boolean);
+      if (teamIds.length > 0) {
+        await upsertTeamOfWeekAward(teamIds, week, year);
+      }
+      // Refresh existing awards display
+      const updated = await getAwards(week, year);
+      setExistingAwards(updated);
       setMsg("✅ Awards saved!");
     } catch (e) {
       setMsg("❌ " + e.message);
@@ -478,8 +511,77 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* ── Existing awards summary ── */}
+          {existingAwards.length > 0 && (
+            <div style={{
+              marginBottom: 20, padding: "12px 14px", borderRadius: 10,
+              background: "var(--bg-secondary)", border: "1px solid var(--border)"
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 10, textTransform: "uppercase", letterSpacing: ".5px" }}>
+                <i className="ti ti-eye" style={{ marginRight: 5 }} />
+                Saved awards this week
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {existingAwards.map((a) => {
+                  const label = AWARD_LABELS[a.award_type] || a.award_type;
+                  // Multi-player (best_team_week)
+                  if (a.award_type === "best_team_week" && a.player_ids?.length) {
+                    const names = a.player_ids
+                      .map((id) => players.find((p) => p.id === id)?.full_name || id)
+                      .filter(Boolean);
+                    return (
+                      <div key={a.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+                        <span style={{
+                          fontSize: 10, padding: "2px 8px", borderRadius: 4, whiteSpace: "nowrap",
+                          background: "var(--primary-soft)", color: "var(--primary)",
+                          border: "1px solid color-mix(in oklab, var(--primary) 25%, transparent)",
+                          fontWeight: 600
+                        }}>{label}</span>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                          {names.map((name, i) => (
+                            <span key={i} style={{
+                              fontSize: 11, padding: "2px 8px", borderRadius: 4,
+                              background: "linear-gradient(135deg,rgba(243,156,18,.15),rgba(230,126,34,.1))",
+                              color: "var(--warning)",
+                              border: "1px solid color-mix(in oklab, var(--warning) 30%, transparent)",
+                              fontWeight: 600
+                            }}>
+                              <i className="ti ti-shield-star" style={{ fontSize: 9, marginRight: 3 }} />
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  // Single-player
+                  const playerName = players.find((p) => p.id === a.player_id)?.full_name;
+                  if (!playerName) return null;
+                  return (
+                    <div key={a.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={{
+                        fontSize: 10, padding: "2px 8px", borderRadius: 4,
+                        background: "var(--primary-soft)", color: "var(--primary)",
+                        border: "1px solid color-mix(in oklab, var(--primary) 25%, transparent)",
+                        fontWeight: 600, whiteSpace: "nowrap"
+                      }}>{label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>
+                        <i className="ti ti-user" style={{ fontSize: 10, marginRight: 3, opacity: .6 }} />
+                        {playerName}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Single-player awards ── */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 10, textTransform: "uppercase", letterSpacing: ".5px" }}>
+            Individual awards
+          </div>
           <div className="awards-grid">
-            {AWARD_TYPES.map(([type, label]) => (
+            {AWARD_TYPES.filter(([type]) => type !== "best_team_week").map(([type, label]) => (
               <div key={type} className="award-field">
                 <label>{label}</label>
                 <select
@@ -494,6 +596,50 @@ export default function AdminPage() {
                 </select>
               </div>
             ))}
+          </div>
+
+          {/* ── Best Team of the Week (5 players) ── */}
+          <div style={{
+            marginTop: 20, padding: "14px 14px 10px", borderRadius: 10,
+            border: "1px solid color-mix(in oklab, var(--warning) 40%, transparent)",
+            background: "linear-gradient(135deg,rgba(243,156,18,.07),rgba(230,126,34,.04))"
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--warning)", marginBottom: 12, textTransform: "uppercase", letterSpacing: ".5px" }}>
+              <i className="ti ti-shield-star" style={{ marginRight: 5 }} />
+              Best Team of the Week — pick 5 players
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
+              {teamOfWeekForm.map((pid, i) => (
+                <div key={i} className="award-field">
+                  <label style={{ color: "var(--warning)" }}>
+                    <i className="ti ti-shield" style={{ fontSize: 10 }} /> Player {i + 1}
+                  </label>
+                  <select
+                    className="admin-input admin-select"
+                    value={pid}
+                    onChange={(e) => {
+                      const updated = [...teamOfWeekForm];
+                      updated[i] = e.target.value;
+                      setTeamOfWeekForm(updated);
+                    }}
+                  >
+                    <option value="">— No selection —</option>
+                    {players.map((p) => (
+                      <option
+                        key={p.id}
+                        value={p.id}
+                        disabled={teamOfWeekForm.includes(p.id) && teamOfWeekForm[i] !== p.id}
+                      >
+                        {p.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 8, fontSize: 10, color: "var(--text-muted)" }}>
+              {teamOfWeekForm.filter(Boolean).length}/5 players selected
+            </div>
           </div>
 
           <div className="admin-actions">
