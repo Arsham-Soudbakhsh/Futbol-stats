@@ -1,0 +1,174 @@
+/* Admin page — all admin-specific selectors. Extends the page-slice
+   imported from styles/pages with extra utility classes used by the
+   refactored tab components. */
+@import "../../styles/pages/admin.css";
+
+/* helpers introduced by the refactor */
+.admin-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 10px 0;
+}
+
+.admin-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 12px;
+}
+.admin-subsection-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chip-captain {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(214, 162, 61, 0.14);
+  color: var(--warning);
+  border: 1px solid color-mix(in oklab, var(--warning) 30%, transparent);
+}
+.chip-player {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
+}
+.chip-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  align-self: center;
+}
+.chip-empty--block {
+  display: block;
+  margin: 6px 0 8px;
+}
+.chip-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  align-self: center;
+}
+
+.admin-fields--inline { align-items: flex-end; }
+.admin-save--compact { padding: 8px 14px; }
+
+/* Awards summary card */
+.awards-summary {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+.awards-summary__head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.awards-summary__head i { margin-right: 5px; }
+.awards-summary__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.awards-summary__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.awards-summary__type {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.awards-summary__player {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.awards-summary__player i { font-size: 10px; margin-right: 3px; opacity: 0.6; }
+.awards-summary__players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.awards-summary__gold {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    135deg,
+    rgba(243, 156, 18, 0.15),
+    rgba(230, 126, 34, 0.1)
+  );
+  color: var(--warning);
+  border: 1px solid color-mix(in oklab, var(--warning) 30%, transparent);
+  font-weight: 600;
+}
+.awards-summary__gold i {
+  font-size: 9px;
+  margin-right: 3px;
+}
+
+/* Best team of the week picker */
+.best-team-box {
+  margin-top: 20px;
+  padding: 14px 14px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--warning) 40%, transparent);
+  background: linear-gradient(
+    135deg,
+    rgba(243, 156, 18, 0.07),
+    rgba(230, 126, 34, 0.04)
+  );
+}
+.best-team-box__title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--warning);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.best-team-box__title i { margin-right: 5px; }
+.best-team-box__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.best-team-box__label { color: var(--warning); }
+.best-team-box__label i { font-size: 10px; }
+.best-team-box__count {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Teams management blocks */
+.mgmt-block {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.mgmt-create {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mgmt-create__input { flex: 1; min-width: 200px; }

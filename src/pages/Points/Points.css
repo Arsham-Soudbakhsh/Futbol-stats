@@ -1,0 +1,4 @@
+/* Points page — page-specific styles.
+   Shared selectors (.rank-pill, .player-cell, .mode-switch) live in the
+   global shared-tables.css so they can be reused by TopGA / TopPlayers. */
+@import "../../styles/pages/points.css";

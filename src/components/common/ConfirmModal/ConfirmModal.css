@@ -1,0 +1,83 @@
+/* Confirm modal — used by ConfirmModal component. */
+.cp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.cp-modal {
+  width: min(420px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 24px;
+  text-align: center;
+  animation: cpModalShow 0.2s ease;
+}
+
+.cp-modal__icon {
+  width: 70px;
+  height: 70px;
+  margin: auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+}
+
+.cp-modal__icon--warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+.cp-modal__icon--success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+.cp-modal__icon--danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+.cp-modal__icon--info {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.cp-modal h3 { margin-top: 18px; }
+.cp-modal p {
+  margin-top: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.cp-modal__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cp-modal__actions button { flex: 1; }
+
+@keyframes cpModalShow {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 480px) {
+  .cp-modal {
+    width: 100%;
+    border-radius: 20px;
+    padding: 20px;
+  }
+  .cp-modal__actions { flex-direction: column-reverse; }
+  .cp-modal__actions button { width: 100%; }
+}

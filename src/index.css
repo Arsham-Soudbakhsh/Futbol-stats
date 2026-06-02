@@ -1,3 +1,6 @@
+@import "./styles/pages/shared.css";
+@import "./styles/pages/shared-tables.css";
+@import "./components/layout/Layout.css";
 /* ─────────────────────────────────────────────────────────
    FutbolStats — Premium Design System v2
    Typography: Inter Tight (display) + Inter (text) + JetBrains Mono (numerals)
@@ -959,3 +962,5 @@ body tbody tr.me-row td {
 
 /* Glow accents on stat-card.hi */
 body .stat-card.hi .stat-val { background: var(--gradient-primary); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* ── Shared per-page CSS that isn't page-specific ── */

@@ -1,0 +1,116 @@
+/* ─── Top players page ─── */
+.player-table__rank {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; margin: 0 auto;
+}
+.player-table__rank--1 { background: rgba(214,162,61,.15); color: var(--warning); }
+.player-table__rank--2 { background: var(--bg-secondary); color: var(--text-secondary); }
+.player-table__rank--3 { background: rgba(201,91,91,.1); color: var(--danger); }
+.player-table__rank--n { background: transparent; color: var(--text-muted); font-size: 12px; }
+
+.player-table__identity { display: flex; align-items: center; gap: 10px; }
+.player-table__you { font-size: 9px; color: var(--primary); margin-left: 4px; font-weight: 600; }
+
+.rating-ring-wrap { position: relative; flex-shrink: 0; }
+.rating-ring-label {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700;
+  font-feature-settings: 'tnum';
+}
+
+.skill-dots { display: flex; gap: 2px; margin-top: 3px; justify-content: center; }
+.skill-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
+.skill-dot--filled { background: var(--primary); }
+
+.rating-cell { text-align: center; }
+.rating-cell__val { font-size: 12px; font-weight: 700; }
+.rating-cell__dots { display: flex; gap: 2px; justify-content: center; margin-top: 3px; }
+
+.avg-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: -.3px;
+}
+.avg-pill--gold { background: rgba(214,162,61,.12); color: var(--warning); }
+.avg-pill--green { background: var(--primary-soft); color: var(--primary); }
+.avg-pill--muted { background: var(--bg-secondary); color: var(--text-muted); }
+
+.no-ratings {
+  text-align: center; padding: 40px 0;
+}
+.no-ratings__icon { font-size: 28px; color: var(--border-strong); display: block; margin-bottom: 10px; }
+.no-ratings__text { font-size: 13px; color: var(--text-muted); }
+
+/* ---- Top Players ---- */
+.podium-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.podium-card {
+  background: var(--gradient-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.podium-card.podium-0 {
+  border-color: color-mix(in oklab, var(--warning) 40%, transparent);
+  box-shadow: 0 4px 16px color-mix(in oklab, var(--warning) 15%, transparent);
+}
+.podium-medal { font-size: 22px; line-height: 1; }
+.podium-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.podium-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tp-player { display: flex; align-items: center; gap: 10px; min-width: 140px; }
+.tp-player__sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.skill-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 50px;
+}
+.skill-num {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.skill-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.skill-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+}
+

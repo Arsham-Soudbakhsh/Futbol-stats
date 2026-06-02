@@ -1,0 +1,270 @@
+/* Best XI page — extracted from the old inline <style> block in BestTeamPage.jsx
+   plus the page-specific selectors from pages.css. */
+@import "../../styles/pages/best-team.css";
+
+.bt-page { display: flex; flex-direction: column; gap: 14px; }
+
+.bt-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 14px;
+}
+@media (max-width: 880px) {
+  .bt-grid { grid-template-columns: 1fr; }
+}
+
+.bt-pitch {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 12px 40px -16px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  aspect-ratio: 3 / 4;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+.bt-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.bt-slot:hover { transform: translate(-50%, -50%) scale(1.08); }
+.bt-slot.active { transform: translate(-50%, -50%) scale(1.12); }
+.bt-bubble {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  margin: 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 6px 18px -4px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.bt-slot.active .bt-bubble {
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, 0.35),
+    0 8px 22px -4px rgba(0, 0, 0, 0.55);
+}
+.bt-name {
+  font-size: 11px;
+  color: #fff;
+  margin-top: 5px;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.2px;
+}
+.bt-pos {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-top: 1px;
+}
+.bt-empty {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 18px;
+}
+
+.bt-detail {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+  margin-top: 12px;
+  animation: fadeUp 0.2s ease;
+}
+.bt-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bt-detail__name { font-weight: 600; font-size: 14px; color: var(--text); }
+.bt-detail__role {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.bt-detail__close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+}
+.bt-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.bt-stat {
+  padding: 8px 6px;
+  background: var(--surface);
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+.bt-stat-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+  font-family: "DM Mono", monospace;
+}
+.bt-stat-lbl {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.pos-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.pos-tab {
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.pos-tab.active-tab {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.bt-rank-caption {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+.bt-rank-count {
+  margin-left: 6px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-family: "DM Mono", monospace;
+}
+
+.bt-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 6px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 6px;
+}
+.bt-rank-row:last-child { border-bottom: none; }
+.bt-rank-row:hover,
+.bt-rank-row.active { background: var(--primary-soft); }
+.bt-rank-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-family: "DM Mono", monospace;
+  flex-shrink: 0;
+}
+.bt-rank-num.gold {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: #fff;
+}
+.bt-rank-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.bt-rank-stats {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  font-family: "DM Mono", monospace;
+}
+.bt-best-badge {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+.bt-formula {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.bt-formula strong { color: var(--text-secondary); }
+.bt-empty-state {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.bt-no-pos {
+  margin-top: 14px;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+.bt-no-pos__head {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.bt-no-pos__row {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+.bt-no-pos__raw { margin-left: 6px; font-size: 9px; opacity: 0.6; }

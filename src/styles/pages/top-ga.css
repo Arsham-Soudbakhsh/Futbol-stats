@@ -1,0 +1,67 @@
+/* ─── Top G/A page ─── */
+.ga-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.ga-table__bar-cell { padding: 8px 10px; }
+.ga-table__bar-wrap { display: flex; align-items: center; gap: 8px; }
+.ga-table__bar { flex: 1; height: 4px; background: var(--bg-secondary); border-radius: 999px; overflow: hidden; min-width: 40px; }
+.ga-table__bar-fill { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+
+.ga-val {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700;
+}
+.ga-val--green { background: var(--primary-soft); color: var(--primary); }
+.ga-val--blue { background: rgba(55,101,137,.12); color: #376589; }
+.ga-val--gold { background: rgba(214,162,61,.1); color: var(--warning); }
+[data-theme="dark"] .ga-val--blue { background: rgba(141,191,76,.1); color: var(--primary-active); }
+
+.ga-extra-val { font-size: 11px; font-weight: 700; }
+.ga-extra-val--goal { color: var(--primary); }
+.ga-extra-val--assist { color: var(--text-secondary); }
+
+.no-stats { text-align: center; padding: 32px 0; }
+.no-stats__icon { font-size: 26px; color: var(--border-strong); display: block; margin-bottom: 10px; }
+.no-stats__text { font-size: 13px; color: var(--text-muted); }
+
+/* ---- Top GA ---- */
+.tga-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tga-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.tga-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.tga-card__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.tga-bar {
+  width: 100%;
+  min-width: 60px;
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.tga-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+}
+.tga-bar-col { min-width: 80px; }
+.tga-player { display: flex; align-items: center; gap: 6px; min-width: 110px; }
+
