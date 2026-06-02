@@ -225,12 +225,31 @@ export default function AdminPage() {
     setSaving(false);
   };
 
-  // Count captains per team
+  // Count captains per team (one captain per team in the new model)
   const captainsPerTeam = captains.reduce((acc, c) => {
     if (c.team_id) acc[c.team_id] = (acc[c.team_id] || 0) + 1;
     return acc;
   }, {});
-  const teamsReady = teams.filter((t) => (captainsPerTeam[t.id] || 0) >= 3);
+  // A team is "ready" once it has at least one captain assigned.
+  const teamsReady = teams.filter((t) => (captainsPerTeam[t.id] || 0) >= 1);
+
+  // Build a lookup: teamId -> { captain, squadMembers[] } for the current week.
+  const teamRosters = {};
+  teams.forEach((t) => {
+    const captain = captains.find((c) => c.team_id === t.id) || null;
+    let squadMembers = [];
+    if (captain) {
+      const sq = squads.find((s) => (s.player_ids || [])[0] === captain.id);
+      if (sq) {
+        squadMembers = (sq.player_ids || [])
+          .slice(1)
+          .map((id) => players.find((p) => p.id === id))
+          .filter(Boolean);
+      }
+    }
+    teamRosters[t.id] = { captain, squadMembers };
+  });
+
 
   const tabs = [
     { id: "player-stats", label: "Players", icon: "ti-user" },
@@ -358,7 +377,7 @@ export default function AdminPage() {
             <div className="admin-list">
               {teamsReady.length === 0 && (
                 <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "10px 0" }}>
-                  هنوز هیچ تیمی ۳ کاپیتان ندارد. ابتدا از تب «مدیریت تیم‌ها» کاپیتان‌ها را assign کنید.
+                  هنوز هیچ تیمی کاپیتان ندارد. ابتدا از تب «مدیریت تیم‌ها» یک کاپیتان به تیم assign کنید.
                 </div>
               )}
               {teamsReady.map((t) => {
@@ -373,13 +392,51 @@ export default function AdminPage() {
                   { field: "goals_for", label: "Goals for", icon: "ti-ball-football" },
                   { field: "goals_against", label: "Goals against", icon: "ti-target-off" },
                 ];
+                const roster = teamRosters[t.id] || { captain: null, squadMembers: [] };
                 return (
                   <div key={t.id} className="admin-row">
                     <div className="admin-row__head">
                       <div className="admin-row__name">
                         <span className="dot" /> {t.name}
                       </div>
+                      <div className="admin-row__role">
+                        {roster.captain ? (
+                          <>
+                            <i className="ti ti-crown" style={{ color: "var(--warning)" }} />{" "}
+                            {roster.captain.full_name}
+                          </>
+                        ) : "بدون کاپیتان"}
+                      </div>
                     </div>
+
+                    {(roster.captain || roster.squadMembers.length > 0) && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0 12px" }}>
+                        {roster.captain && (
+                          <span style={{
+                            fontSize: 11, padding: "3px 9px", borderRadius: 999,
+                            background: "rgba(214,162,61,.14)", color: "var(--warning)",
+                            border: "1px solid color-mix(in oklab, var(--warning) 30%, transparent)"
+                          }}>
+                            <i className="ti ti-crown" /> {roster.captain.full_name}
+                          </span>
+                        )}
+                        {roster.squadMembers.map((p) => (
+                          <span key={p.id} style={{
+                            fontSize: 11, padding: "3px 9px", borderRadius: 999,
+                            background: "var(--primary-soft)", color: "var(--primary)",
+                            border: "1px solid color-mix(in oklab, var(--primary) 25%, transparent)"
+                          }}>
+                            {p.full_name}
+                          </span>
+                        ))}
+                        {!roster.squadMembers.length && (
+                          <span style={{ fontSize: 11, color: "var(--text-muted)", alignSelf: "center" }}>
+                            <i className="ti ti-clock" /> Squad هفته {week} هنوز ثبت نشده
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div className="admin-fields admin-fields--6">
                       {fields.map(({ field, label, icon }) => (
                         <div key={field} className="admin-field">
@@ -399,6 +456,7 @@ export default function AdminPage() {
                   </div>
                 );
               })}
+
             </div>
           )}
 
@@ -620,7 +678,7 @@ export default function AdminPage() {
               <div className="admin-list">
                 {teams.map(t => {
                   const count = captainsPerTeam[t.id] || 0;
-                  const ready = count >= 3;
+                  const ready = count >= 1;
                   const teamCaptains = captains.filter(c => c.team_id === t.id);
                   return (
                     <div key={t.id} className="admin-row">
@@ -629,15 +687,30 @@ export default function AdminPage() {
                           <span className="dot" /> {t.name}
                         </div>
                         <div className="admin-row__role" style={{ color: ready ? "var(--success)" : "var(--text-muted)" }}>
-                          {count}/3 کاپیتان {ready ? "✅ آماده" : ""}
+                          {ready ? `✅ کاپیتان: ${teamCaptains.map(c => c.full_name).join("، ")}` : "بدون کاپیتان"}
+
                         </div>
                       </div>
 
-                      {teamCaptains.length > 0 && (
-                        <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 10px" }}>
-                          کاپیتان‌ها: {teamCaptains.map(c => c.full_name).join("، ")}
-                        </div>
-                      )}
+                      {(() => {
+                        const roster = teamRosters[t.id] || { squadMembers: [] };
+                        if (!roster.squadMembers.length) return null;
+                        return (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0 10px" }}>
+                            <span style={{ fontSize: 11, color: "var(--text-muted)", alignSelf: "center" }}>
+                              <i className="ti ti-users" /> بازیکنان هفته {week}:
+                            </span>
+                            {roster.squadMembers.map(p => (
+                              <span key={p.id} style={{
+                                fontSize: 11, padding: "3px 9px", borderRadius: 999,
+                                background: "var(--primary-soft)", color: "var(--primary)",
+                                border: "1px solid color-mix(in oklab, var(--primary) 25%, transparent)"
+                              }}>{p.full_name}</span>
+                            ))}
+                          </div>
+                        );
+                      })()}
+
 
                       {/* rename */}
                       <div className="admin-fields" style={{ alignItems: "flex-end" }}>

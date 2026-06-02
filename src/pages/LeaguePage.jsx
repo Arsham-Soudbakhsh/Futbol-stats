@@ -235,12 +235,19 @@ function TeamDetail({ teamId, teamName, week, year, viewMode }) {
       // For season mode, filter stats by year
       const filteredStats = viewMode === 'week' ? st : st.filter(s => s.year === year)
       const filteredAwards = viewMode === 'week' ? aw : aw.filter(a => a.year === year)
-      setPlayers(pl.filter(p => p.team_id === teamId))
+      // Derive team roster from the weekly squad first (captain + 4 players).
+      // Fall back to player.team_id only if no squad has been saved yet.
+      const squadIds = sq?.player_ids || []
+      const roster = squadIds.length
+        ? squadIds.map(id => pl.find(p => p.id === id)).filter(Boolean)
+        : pl.filter(p => p.team_id === teamId)
+      setPlayers(roster)
       setStats(filteredStats)
       setAwards(filteredAwards)
       setSquad(sq)
       setLoading(false)
     }).catch(e => { console.error(e); setLoading(false) })
+
     return () => { cancelled = true }
   }, [teamId, week, year, viewMode])
 
