@@ -3,6 +3,9 @@ import {
   getPlayerStats,
   getAwards,
   getRatingsForPlayer,
+  getAllStats,
+  getAllAwards,
+  getAllRatings,
 } from "../../services";
 import {
   calcStatPoints,
@@ -41,7 +44,13 @@ export function useHomeWeek({ profile, week, year }) {
       getRatingsForPlayer(profile.id, week, year),
     ]).then(([st, aw, rt]) => {
       setStats(st);
-      setAwards((aw || []).filter((a) => a.player_id === profile.id));
+      // BUG FIX: best_team_week uses player_ids (array), not player_id.
+      // Multi-winner awards (top_scorer_week etc.) also use player_ids.
+      // Filter awards where this player is included in either field.
+      setAwards((aw || []).filter((a) =>
+        a.player_id === profile.id ||
+        (Array.isArray(a.player_ids) && a.player_ids.includes(profile.id))
+      ));
       // Only show ratings when all 3 captains submitted (strict mode).
       const strict =
         avgRatingsStrict(rt || [], 3) || {
@@ -82,25 +91,59 @@ export function useHomeSeason({ profile, year }) {
     let cancelled = false;
 
     (async () => {
+      // PERF FIX: instead of 8 serial loops (24 sequential Firestore requests),
+      // fetch all stats/awards/ratings for the whole year in 3 parallel requests,
+      // then group by week in memory.
+      const [allSt, allAw, allRt] = await Promise.all([
+        getAllStats(),
+        getAllAwards(),
+        getAllRatings(),
+      ]);
+
+      if (cancelled) return;
+
+      // Index by player + week
+      const statsByWeek = {};
+      (allSt || []).forEach((s) => {
+        if (s.player_id !== profile.id) return;
+        statsByWeek[s.week_number] = s;
+      });
+
+      const awardsByWeek = {};
+      (allAw || []).forEach((a) => {
+        const isMe =
+          a.player_id === profile.id ||
+          (Array.isArray(a.player_ids) && a.player_ids.includes(profile.id));
+        if (!isMe) return;
+        if (!awardsByWeek[a.week_number]) awardsByWeek[a.week_number] = [];
+        awardsByWeek[a.week_number].push(a);
+      });
+
+      const ratingsByWeek = {};
+      (allRt || []).forEach((r) => {
+        if (r.to_player_id !== profile.id) return;
+        const key = r.week_number;
+        if (!ratingsByWeek[key]) ratingsByWeek[key] = [];
+        ratingsByWeek[key].push(r);
+      });
+
       const trend = [];
       let tG = 0, tA = 0, tC = 0, tAw = 0;
       let pS = 0, sS = 0, dS = 0, drS = 0, rW = 0;
 
       for (const w of WEEKS) {
-        const [st, aw, rt] = await Promise.all([
-          getPlayerStats(profile.id, w, year),
-          getAwards(w, year),
-          getRatingsForPlayer(profile.id, w, year),
-        ]);
+        const st = statsByWeek[w] || null;
+        const myAw = awardsByWeek[w] || [];
+        const rt = ratingsByWeek[w] || [];
+
         const g = st?.goals || 0;
         const a = st?.assists || 0;
         const cs = st?.clean_sheets || 0;
-        const myAw = (aw || []).filter((x) => x.player_id === profile.id);
         const ap = calcAwardPoints(myAw);
         const sp = calcStatPoints(st);
         tG += g; tA += a; tC += cs; tAw += ap;
 
-        if (rt && rt.length) {
+        if (rt.length) {
           const rr = avgRatingsStrict(rt, 3);
           if (rr) {
             pS += rr.passing;

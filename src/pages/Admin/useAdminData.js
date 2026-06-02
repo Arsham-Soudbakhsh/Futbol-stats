@@ -5,9 +5,11 @@ import {
   getAwards,
   upsertStats,
   upsertAward,
+  upsertMultiAward,
   upsertTeamOfWeekAward,
   getTeams,
   getTeamWeeklyStats,
+  getAllTeamWeeklyStats,
   upsertTeamWeeklyStats,
   createInviteCode,
   getInviteCodes,
@@ -18,6 +20,7 @@ import {
   getAllSquadsForWeek,
   renameTeam,
 } from "../../services";
+import { MULTI_WINNER_AWARDS } from "../../utils/points";
 
 /**
  * Single hook that owns every read+write the admin page needs.
@@ -61,7 +64,13 @@ export function useAdminData({ week, year }) {
       setExistingAwards(awards);
       const form = {};
       awards.forEach((a) => {
-        if (a.award_type !== "best_team_week") form[a.award_type] = a.player_id || "";
+        if (a.award_type === "best_team_week") return;
+        if (MULTI_WINNER_AWARDS.has(a.award_type)) {
+          // Multi-winner: store as array of player_ids
+          form[a.award_type] = a.player_ids || (a.player_id ? [a.player_id] : []);
+        } else {
+          form[a.award_type] = a.player_id || "";
+        }
       });
       setAwardForm(form);
       const teamAward = awards.find((a) => a.award_type === "best_team_week");
@@ -90,20 +99,19 @@ export function useAdminData({ week, year }) {
   useEffect(() => {
     if (!teams.length) return;
     (async () => {
+      // PERF FIX: single bulk fetch instead of one request per team
+      const allTs = await getAllTeamWeeklyStats(week, year);
       const map = {};
-      for (const t of teams) {
-        const ts = await getTeamWeeklyStats(t.id, week, year);
-        if (ts) {
-          map[t.id] = {
-            played: ts.played ?? 0,
-            wins: ts.wins ?? 0,
-            draws: ts.draws ?? 0,
-            losses: ts.losses ?? 0,
-            goals_for: ts.goals_for ?? 0,
-            goals_against: ts.goals_against ?? 0,
-          };
-        }
-      }
+      allTs.forEach((ts) => {
+        map[ts.team_id] = {
+          played: ts.played ?? 0,
+          wins: ts.wins ?? 0,
+          draws: ts.draws ?? 0,
+          losses: ts.losses ?? 0,
+          goals_for: ts.goals_for ?? 0,
+          goals_against: ts.goals_against ?? 0,
+        };
+      });
       setTeamForm(map);
     })();
   }, [week, year, teams]);
@@ -177,10 +185,19 @@ export function useAdminData({ week, year }) {
     setSaving(true);
     setMsg("");
     try {
-      for (const [type, pid] of Object.entries(awardForm)) {
-        if (!pid || type === "best_team_week") continue;
-        await upsertAward(type, pid, week, year);
+      for (const [type, val] of Object.entries(awardForm)) {
+        if (type === "best_team_week") continue;
+        if (MULTI_WINNER_AWARDS.has(type)) {
+          // val is an array of player IDs
+          const ids = (val || []).filter(Boolean);
+          if (ids.length > 0) await upsertMultiAward(type, ids, week, year);
+        } else {
+          if (!val) continue;
+          await upsertAward(type, val, week, year);
+        }
       }
+      // BUG FIX: always save best_team_week even if empty (so it clears properly),
+      // but only if at least one player was selected.
       const teamIds = teamOfWeekForm.filter(Boolean);
       if (teamIds.length > 0) await upsertTeamOfWeekAward(teamIds, week, year);
       setExistingAwards(await getAwards(week, year));

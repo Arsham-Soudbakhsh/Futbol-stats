@@ -62,9 +62,17 @@ function buildRows({ stats, awards, players, profile, mode }) {
 
   const awardsMap = {};
   awards.forEach((a) => {
-    if (!a.player_id) return;
-    if (!awardsMap[a.player_id]) awardsMap[a.player_id] = [];
-    awardsMap[a.player_id].push(a);
+    // BUG FIX: multi-winner awards (best_team_week, top_scorer_week, etc.)
+    // store winners in player_ids array. Add award to each winner's list.
+    const ids = Array.isArray(a.player_ids) && a.player_ids.length
+      ? a.player_ids
+      : a.player_id
+        ? [a.player_id]
+        : [];
+    ids.forEach((pid) => {
+      if (!awardsMap[pid]) awardsMap[pid] = [];
+      awardsMap[pid].push(a);
+    });
   });
 
   return players

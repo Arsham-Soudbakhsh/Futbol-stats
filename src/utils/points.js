@@ -26,6 +26,11 @@ export const calcStatPoints = (stats) => {
   return (stats.goals || 0) * POINTS.goal + (stats.assists || 0) * POINTS.assist + cs * POINTS.clean_sheet
 }
 
+// BUG FIX: best_team_week uses player_ids (array) not player_id.
+// We receive awards already filtered to only the current player's awards,
+// so each award object here either has player_id === profile.id OR
+// is a best_team_week where player_ids includes profile.id.
+// calcAwardPoints just sums points by award_type, no filtering needed.
 export const calcAwardPoints = (awards) => {
   if (!awards?.length) return 0
   return awards.reduce((sum, a) => sum + (AWARD_POINTS[a.award_type] || 0), 0)
@@ -73,3 +78,11 @@ export const AWARD_LABELS = {
   most_cleansheets: 'Most clean sheets',
   best_team_week: 'Best team of the week',
 }
+
+// Awards that can have multiple winners
+export const MULTI_WINNER_AWARDS = new Set([
+  'top_scorer_week',
+  'top_assister_week',
+  'best_ga_week',
+  'most_cleansheets',
+])
