@@ -4,6 +4,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import "./index.css";
 import { useAuthStore } from "./store/authStore";
+import { setupPWA } from "./pwa";
+
+setupPWA();
 
 import AuthPage from "./pages/Auth";
 import DashboardLayout from "./components/layout/DashboardLayout";
