@@ -51,15 +51,17 @@ export function useHomeWeek({ profile, week, year }) {
         a.player_id === profile.id ||
         (Array.isArray(a.player_ids) && a.player_ids.includes(profile.id))
       ));
-      // Only show ratings when all 3 captains submitted (strict mode).
+      // Captains are rated by the other 2 captains (not themselves),
+      // so they can only ever have 2 ratings. Use requiredCount=2 for them.
+      const requiredCount = profile?.role === 'captain' ? 2 : 3;
       const strict =
-        avgRatingsStrict(rt || [], 3) || {
+        avgRatingsStrict(rt || [], requiredCount) || {
           passing: 0,
           shooting: 0,
           defending: 0,
           dribbling: 0,
         };
-      setRatings(avgRatingsStrict(rt || [], 3));
+      setRatings(avgRatingsStrict(rt || [], requiredCount));
       setLoading(false);
       requestAnimationFrame(() =>
         setTimeout(
@@ -144,7 +146,7 @@ export function useHomeSeason({ profile, year }) {
         tG += g; tA += a; tC += cs; tAw += ap;
 
         if (rt.length) {
-          const rr = avgRatingsStrict(rt, 3);
+          const rr = avgRatingsStrict(rt, profile?.role === 'captain' ? 2 : 3);
           if (rr) {
             pS += rr.passing;
             sS += rr.shooting;

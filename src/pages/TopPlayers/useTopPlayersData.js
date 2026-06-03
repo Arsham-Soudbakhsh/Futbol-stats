@@ -46,7 +46,7 @@ function buildPlayers({ ratings, allPlayers, profile, mode }) {
   const out =
     mode === "week"
       ? allPlayers.map((p) => {
-          const strict = avgRatingsStrict(byPlayer[p.id] || [], 3);
+          const strict = avgRatingsStrict(byPlayer[p.id] || [], p.role === 'captain' ? 2 : 3);
           const r =
             strict || { passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0 };
           return { ...p, ...r, me: p.id === profile?.id };
@@ -65,8 +65,9 @@ function buildSeasonRow(p, playerRatings, profile) {
     if (!byWeek[key]) byWeek[key] = [];
     byWeek[key].push(r);
   });
+  const requiredCount = p.role === 'captain' ? 2 : 3;
   const weeklyAverages = Object.values(byWeek)
-    .map((arr) => avgRatingsStrict(arr, 3))
+    .map((arr) => avgRatingsStrict(arr, requiredCount))
     .filter(Boolean);
 
   if (!weeklyAverages.length) {
