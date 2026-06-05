@@ -1,5 +1,6 @@
 import React, { useContext, useState } from "react";
 import Loader from "../../components/common/Loader";
+import AvatarUploader from "../../components/common/AvatarUploader";
 import { WeekContext } from "../../components/layout/WeekContext";
 import { useAuthStore } from "../../store/authStore";
 import { calcStatPoints, calcAwardPoints } from "../../utils/points";
@@ -45,9 +46,12 @@ export default function HomePage() {
   return (
     <div className="hp">
       <header className="hp-head">
-        <div>
-          <div className="hp-greet">{greeting()},</div>
-          <h1 className="hp-name">{profile?.name || profile?.full_name || "Player"}</h1>
+        <div className="hp-head__id">
+          <AvatarUploader size={72} />
+          <div>
+            <div className="hp-greet">{greeting()},</div>
+            <h1 className="hp-name">{profile?.name || profile?.full_name || "Player"}</h1>
+          </div>
         </div>
         <div className="hp-seg" role="tablist">
           <button

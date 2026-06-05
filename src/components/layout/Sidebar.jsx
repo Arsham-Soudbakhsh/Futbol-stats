@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { avatarThumb } from "../../lib/cloudinary";
 
 /**
  * Side navigation. Pure presentational — receives the nav model + auth
@@ -38,7 +39,15 @@ export default function Sidebar({ open, onClose, profile, isGuest, navItems, onS
 
           <div className="profile-box">
             <div className="avatar-ring">
-              <div className="avatar-img">{initials}</div>
+              {profile?.avatar_url ? (
+                <img
+                  className="avatar-img avatar-img--photo"
+                  src={avatarThumb(profile.avatar_url, 112)}
+                  alt={profile.full_name}
+                />
+              ) : (
+                <div className="avatar-img">{initials}</div>
+              )}
             </div>
             <div className="profile-name">{profile?.full_name || "Player"}</div>
             <div className="profile-role">

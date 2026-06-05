@@ -1024,3 +1024,34 @@ body tbody tr.me-row td {
 body .stat-card.hi .stat-val { background: var(--gradient-primary); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
 /* ── Shared per-page CSS that isn't page-specific ── */
+/* Append to src/index.css (or any global stylesheet) */
+
+/* Sidebar avatar: use an <img> when the user has uploaded one */
+.avatar-img.avatar-img--photo {
+  padding: 0;
+  object-fit: cover;
+  background: transparent;
+}
+
+/* Best XI: photo bubble replaces the colored initials circle */
+.bt-bubble.bt-bubble--photo {
+  background: #111;
+  padding: 0;
+  overflow: hidden;
+  border-width: 3px;
+  border-style: solid;
+}
+.bt-bubble.bt-bubble--photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+
+/* Home header: avatar + greeting on one row */
+.hp-head__id {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
