@@ -9,3 +9,4 @@ export * from "./stats.service";
 export * from "./awards.service";
 export * from "./ratings.service";
 export * from "./invites.service";
+export * from "./weekAccess.service";

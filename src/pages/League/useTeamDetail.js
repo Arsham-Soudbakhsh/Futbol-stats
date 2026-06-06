@@ -37,11 +37,13 @@ export function useTeamDetail({ teamId, week, year, viewMode }) {
         const filteredStats = viewMode === "week" ? st : st.filter((s) => s.year === year);
         const filteredAwards = viewMode === "week" ? aw : aw.filter((a) => a.year === year);
 
-        // Roster = saved squad's player_ids; fall back to team_id assignment.
+        // Roster comes from the saved weekly squad. With per-week teams we
+        // can't fall back to profile.team_id (it's global and would leak
+        // across weeks), so if no squad exists we render an empty roster.
         const squadIds = sq?.player_ids || [];
         const roster = squadIds.length
           ? squadIds.map((id) => pl.find((p) => p.id === id)).filter(Boolean)
-          : pl.filter((p) => p.team_id === teamId);
+          : [];
 
         setPlayers(roster);
         setStats(filteredStats);

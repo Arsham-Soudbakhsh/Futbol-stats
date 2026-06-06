@@ -3,7 +3,7 @@ import RatingRing from "./RatingRing";
 import SkillBar from "./SkillBar";
 import { ratingColor } from "../ratingColor";
 
-export default function RatingsTable({ players }) {
+export default function RatingsTable({ players, onSelect }) {
   return (
     <div className="rt-wrap">
       <table className="tp-table">
@@ -20,7 +20,7 @@ export default function RatingsTable({ players }) {
         </thead>
         <tbody>
           {players.map((p, i) => (
-            <RatingsRow key={p.id} player={p} index={i} />
+            <RatingsRow key={p.id} player={p} index={i} onSelect={onSelect} />
           ))}
         </tbody>
       </table>
@@ -28,10 +28,13 @@ export default function RatingsTable({ players }) {
   );
 }
 
-function RatingsRow({ player: p, index: i }) {
+function RatingsRow({ player: p, index: i, onSelect }) {
   const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
   return (
-    <tr className={p.me ? "me" : ""}>
+    <tr
+      className={`row-clickable ${p.me ? "me" : ""}`}
+      onClick={() => onSelect?.(p)}
+    >
       <td style={{ textAlign: "center" }}>
         <div className={`rank-pill ${i < 3 ? "rank-top" : ""}`}>
           {medal || i + 1}

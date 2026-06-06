@@ -1,26 +1,61 @@
 import { useEffect, useState } from "react";
 import {
+  getTeamsForWeek,
   getTeams,
   getAllTeamStatsSeason,
   getAllTeamWeeklyStats,
+  getCaptainTeamForWeek,
 } from "../../services";
 
 /**
- * Builds the league standings table aggregated either per-week or
- * for the whole season. Keeps teams whose row sources have no data
- * so they show as P/W/D/L = 0 (matches the old behaviour).
+ * Builds the league standings table.
+ *
+ * Week view: only teams that were CREATED for that week (per-week scoped).
+ * Season view: every team that ever existed in this year (so the table can
+ *   aggregate stats across week-scoped team docs).
  */
 export function useLeagueTable({ week, year, profile, viewMode }) {
   const [teams, setTeams] = useState([]);
   const [table, setTable] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [myTeamId, setMyTeamId] = useState(null);
+
+  // Reload teams when week/year/viewMode changes.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const list =
+        viewMode === "season"
+          ? await getTeams()
+          : await getTeamsForWeek(week, year);
+      if (!cancelled) setTeams(list);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [week, year, viewMode]);
+
+  // Resolve "my team this week" for the current viewer (used for "me" highlight).
+  useEffect(() => {
+    let cancelled = false;
+    if (!profile?.id || profile?.role !== "captain") {
+      setMyTeamId(null);
+      return;
+    }
+    getCaptainTeamForWeek(profile.id, week, year).then((tid) => {
+      if (!cancelled) setMyTeamId(tid || null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.id, profile?.role, week, year]);
 
   useEffect(() => {
-    getTeams().then(setTeams);
-  }, []);
-
-  useEffect(() => {
-    if (!teams.length) return;
+    if (!teams.length) {
+      setTable([]);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
 
@@ -32,7 +67,7 @@ export function useLeagueTable({ week, year, profile, viewMode }) {
             : await getAllTeamWeeklyStats(week, year);
 
         if (cancelled) return;
-        setTable(aggregate(teams, statsRows, profile));
+        setTable(aggregate(teams, statsRows, myTeamId));
       } catch (e) {
         console.error(e);
       } finally {
@@ -43,12 +78,12 @@ export function useLeagueTable({ week, year, profile, viewMode }) {
     return () => {
       cancelled = true;
     };
-  }, [teams, week, year, viewMode, profile]);
+  }, [teams, week, year, viewMode, myTeamId]);
 
   return { teams, table, loading };
 }
 
-function aggregate(teams, statsRows, profile) {
+function aggregate(teams, statsRows, myTeamId) {
   const agg = {};
   teams.forEach((t) => {
     agg[t.id] = {
@@ -78,7 +113,7 @@ function aggregate(teams, statsRows, profile) {
       ...t,
       pts: t.wins * 3 + t.draws,
       gd: t.gf - t.ga,
-      me: t.id === profile?.team_id,
+      me: !!myTeamId && t.id === myTeamId,
     }))
     .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
 }

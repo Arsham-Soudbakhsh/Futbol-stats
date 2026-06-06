@@ -105,6 +105,7 @@ export default function AdminPage() {
           players={data.players}
           teams={data.teams}
           captains={data.captains}
+          captainTeamMap={data.captainTeamMap}
           squads={data.squads}
           captainsPerTeam={data.captainsPerTeam}
           teamRosters={data.teamRosters}
@@ -117,6 +118,9 @@ export default function AdminPage() {
           teamNameEdits={data.teamNameEdits}
           setTeamNameEdits={data.setTeamNameEdits}
           handleRenameTeam={data.handleRenameTeam}
+          handleDeleteTeam={data.handleDeleteTeam}
+          weekOpen={data.weekOpen}
+          toggleWeekAccess={data.toggleWeekAccess}
           saving={saving}
         />
       )}

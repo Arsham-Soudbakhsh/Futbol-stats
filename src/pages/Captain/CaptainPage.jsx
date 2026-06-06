@@ -9,6 +9,10 @@ import {
   upsertWeeklySquad,
   upsertRating,
   getRatingsByCaptain,
+  getTeamById,
+  confirmTeamName,
+  getWeekAccess,
+  getCaptainTeamForWeek,
 } from "../../services";
 import "./Captain.css";
 
@@ -20,33 +24,13 @@ const POS_CONFIG = {
 };
 
 const RATING_FIELDS = [
-  {
-    key: "passing",
-    label: "Passing",
-    icon: "ti-arrows-right-left",
-    color: "var(--primary)",
-  },
-  {
-    key: "shooting",
-    label: "Shooting",
-    icon: "ti-target-arrow",
-    color: "var(--danger)",
-  },
-  { key: "defending", label: "Defending", icon: "ti-shield", color: "#3b82f6" },
-  {
-    key: "dribbling",
-    label: "Dribbling",
-    icon: "ti-run",
-    color: "var(--warning)",
-  },
+  { key: "passing",   label: "Passing",   icon: "ti-arrows-right-left", color: "var(--primary)" },
+  { key: "shooting",  label: "Shooting",  icon: "ti-target-arrow",      color: "var(--danger)"  },
+  { key: "defending", label: "Defending", icon: "ti-shield",             color: "#3b82f6"        },
+  { key: "dribbling", label: "Dribbling", icon: "ti-run",                color: "var(--warning)" },
 ];
 
-const DEFAULT_RATING = {
-  passing: 50,
-  shooting: 50,
-  defending: 50,
-  dribbling: 50,
-};
+const DEFAULT_RATING = { passing: 50, shooting: 50, defending: 50, dribbling: 50 };
 
 function PosBadge({ pos }) {
   if (!pos) return null;
@@ -59,12 +43,7 @@ function PosBadge({ pos }) {
 }
 
 function getInitials(name = "") {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 }
 
 function ratingTone(v) {
@@ -75,8 +54,10 @@ function ratingTone(v) {
 }
 
 export default function CaptainPage() {
-  const { profile, setProfile } = useAuthStore();
+  const { profile } = useAuthStore();
   const { week, year } = useContext(WeekContext);
+
+  // ── ALL STATE — must come before any return ──────────────────────────────
   const [tab, setTab] = useState("squad");
   const [allPlayers, setAllPlayers] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -88,52 +69,84 @@ export default function CaptainPage() {
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
   const [confirmModal, setConfirmModal] = useState({ open: false, type: null });
+  const [team, setTeam] = useState(null);
+  const [teamLoading, setTeamLoading] = useState(true);
+  const [myTeamId, setMyTeamId] = useState(null);
+  const [weekOpen, setWeekOpen] = useState(false);
+  const [weekLoading, setWeekLoading] = useState(true);
+  const [teamNameInput, setTeamNameInput] = useState("");
+  const [confirmingName, setConfirmingName] = useState(false);
 
   const isCaptain = profile?.role === "captain";
 
-  // load all players (excluding self) once we know the profile
+  // ── ALL EFFECTS — must come before any return ────────────────────────────
   useEffect(() => {
     if (!isCaptain) return;
     getAllPlayers().then((list) =>
-      setAllPlayers(list.filter((p) => p.id !== profile.id)),
+      setAllPlayers(list.filter((p) => p.id !== profile.id))
     );
   }, [isCaptain, profile?.id]);
 
-  // load weekly squad whenever week/year/team changes
+  // Resolve "my team THIS WEEK" from the per-week assignment.
+  useEffect(() => {
+    if (!isCaptain || !profile?.id) {
+      setMyTeamId(null);
+      setTeam(null);
+      setTeamNameInput("");
+      setTeamLoading(false);
+      return;
+    }
+    setTeamLoading(true);
+    setTeam(null);
+    setTeamNameInput("");
+    getCaptainTeamForWeek(profile.id, week, year)
+      .then(async (tid) => {
+        setMyTeamId(tid || null);
+        if (!tid) {
+          setTeamLoading(false);
+          return;
+        }
+        const t = await getTeamById(tid);
+        setTeam(t);
+        setTeamNameInput(t?.name || "");
+        setTeamLoading(false);
+      })
+      .catch(() => setTeamLoading(false));
+  }, [isCaptain, profile?.id, week, year]);
+
+  useEffect(() => {
+    if (!isCaptain) return;
+    setWeekLoading(true);
+    getWeekAccess(week, year).then((wa) => {
+      setWeekOpen(wa?.open === true);
+      setWeekLoading(false);
+    });
+  }, [isCaptain, week, year]);
+
   useEffect(() => {
     if (!isCaptain) return;
     setSquadLocked(false);
     setSelected([]);
-
-    if (!profile.team_id) return;
-
-    getWeeklySquad(profile.team_id, week, year).then((sq) => {
+    if (!myTeamId) return;
+    getWeeklySquad(myTeamId, week, year).then((sq) => {
       if (!sq) return;
-      if (sq.player_ids) {
-        setSelected(sq.player_ids.filter((id) => id !== profile.id));
-      }
+      if (sq.player_ids) setSelected(sq.player_ids.filter((id) => id !== profile.id));
       setSquadLocked(!!sq.locked);
     });
-  }, [isCaptain, week, year, profile?.team_id, profile?.id]);
+  }, [isCaptain, week, year, myTeamId, profile?.id]);
 
-  // ── BUG FIX ──────────────────────────────────────────────────────────────
-  // Previously `ratings` and `absentPlayers` were never rehydrated from
-  // Firestore, so after the captain saved + refreshed the UI fell back to the
-  // default state and it LOOKED like nothing was saved. Load them on mount /
-  // whenever the week changes.
   useEffect(() => {
     if (!isCaptain || !profile?.id) return;
     setRatings({});
     setAbsentPlayers({});
-
     getRatingsByCaptain(profile.id, week, year)
       .then((rows) => {
         const r = {};
         const a = {};
         for (const row of rows) {
           r[row.to_player_id] = {
-            passing: row.passing ?? 50,
-            shooting: row.shooting ?? 50,
+            passing:   row.passing   ?? 50,
+            shooting:  row.shooting  ?? 50,
             defending: row.defending ?? 50,
             dribbling: row.dribbling ?? 50,
           };
@@ -144,188 +157,26 @@ export default function CaptainPage() {
       })
       .catch((e) => console.error("load ratings failed", e));
   }, [isCaptain, profile?.id, week, year]);
+
   useEffect(() => {
     if (!confirmModal.open) return;
-
     const scrollY = window.scrollY;
-
     document.body.style.position = "fixed";
     document.body.style.top = `-${scrollY}px`;
     document.body.style.left = "0";
     document.body.style.right = "0";
     document.body.style.width = "100%";
-
     return () => {
       document.body.style.position = "";
       document.body.style.top = "";
       document.body.style.left = "";
       document.body.style.right = "";
       document.body.style.width = "";
-
       window.scrollTo(0, scrollY);
     };
   }, [confirmModal.open]);
-  if (!isCaptain) {
-    return (
-      <div className="card fade-up">
-        <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-          Access denied. Captains only.
-        </div>
-      </div>
-    );
-  }
 
-  // ── If captain doesn't have a team yet, show team-creation form ──
-  if (!profile?.team_id) {
-    return (
-      <div className="page fade-up cp-page">
-        <div className="card cp-hero">
-          <div className="cp-hero__row">
-            <div className="cp-hero__icon">
-              <i className="ti ti-shield-star" />
-            </div>
-            <div className="cp-hero__text">
-              <div className="cp-hero__title">Captain panel</div>
-              <div className="cp-hero__sub">
-                Week {week} · {year}
-              </div>
-            </div>
-            <span className="cp-hero__pill">
-              <i className="ti ti-crown" /> Captain
-            </span>
-          </div>
-        </div>
-        <div
-          className="card"
-          style={{ padding: "32px 24px", textAlign: "center" }}
-        >
-          <i
-            className="ti ti-clock"
-            style={{
-              fontSize: 36,
-              color: "var(--text-muted)",
-              display: "block",
-              marginBottom: 12,
-            }}
-          />
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "var(--text)",
-              marginBottom: 8,
-            }}
-          >
-            Please wait to be assigned to a team.
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              color: "var(--text-muted)",
-              lineHeight: 1.6,
-            }}
-          >
-            The admin must add you to a team first.
-            <br />
-            Once assigned, you will be able to select players.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const togglePlayer = (id) => {
-    if (squadLocked) return;
-    setSelected((prev) =>
-      prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : prev.length < 4
-          ? [...prev, id]
-          : prev,
-    );
-  };
-
-  const saveSquad = async () => {
-    if (selected.length !== 4) {
-      setMsg("err:Select exactly 4 players.");
-      return;
-    }
-    setSaving(true);
-    setMsg("");
-    try {
-      await upsertWeeklySquad(profile.team_id, week, year, [
-        profile.id,
-        ...selected,
-      ]);
-      setSquadLocked(true);
-      setMsg("ok:Squad saved!");
-    } catch (e) {
-      setMsg("err:" + e.message);
-    }
-    setSaving(false);
-  };
-
-  const handleRating = (pid, field, val) => {
-    setRatings((prev) => ({
-      ...prev,
-      [pid]: {
-        ...DEFAULT_RATING,
-        ...(prev[pid] || {}),
-        [field]: parseInt(val, 10),
-      },
-    }));
-  };
-
-  const toggleAbsent = (id) => {
-    setAbsentPlayers((prev) => ({ ...prev, [id]: !prev[id] }));
-    // mark as touched so it gets saved even if no slider was moved
-    setRatings((prev) =>
-      prev[id] ? prev : { ...prev, [id]: { ...DEFAULT_RATING } },
-    );
-  };
-
-  const saveRatings = async () => {
-    setSaving(true);
-    setMsg("");
-
-    // include any absent-only entries that don't yet have a ratings row
-    const ids = new Set([
-      ...Object.keys(ratings),
-      ...Object.keys(absentPlayers).filter((k) => absentPlayers[k]),
-    ]);
-
-    if (ids.size === 0) {
-      setMsg("err:Rate at least one player before saving.");
-      setSaving(false);
-      return;
-    }
-
-    try {
-      for (const pid of ids) {
-        const r = ratings[pid] || DEFAULT_RATING;
-        await upsertRating(
-          profile.id,
-          pid,
-          week,
-          year,
-          r.passing ?? 50,
-          r.shooting ?? 50,
-          r.defending ?? 50,
-          r.dribbling ?? 50,
-          !!absentPlayers[pid],
-        );
-      }
-      setMsg("ok:Ratings saved!");
-    } catch (e) {
-      console.error(e);
-      setMsg("err:" + e.message);
-    }
-    setSaving(false);
-  };
-
-  const isOk = msg.startsWith("ok:");
-  const msgText = msg.replace(/^(ok|err):/, "");
-
+  // ── ALL MEMOS — must come before any return ──────────────────────────────
   const filteredPlayers = useMemo(() => {
     const q = search.trim().toLowerCase();
     return allPlayers.filter((p) => {
@@ -341,60 +192,248 @@ export default function CaptainPage() {
         ...Object.keys(ratings),
         ...Object.keys(absentPlayers).filter((k) => absentPlayers[k]),
       ]).size,
-    [ratings, absentPlayers],
+    [ratings, absentPlayers]
   );
 
-  const selectedPlayers = selected
-    .map((id) => allPlayers.find((p) => p.id === id))
-    .filter(Boolean);
+  const selectedPlayers = useMemo(
+    () => selected.map((id) => allPlayers.find((p) => p.id === id)).filter(Boolean),
+    [selected, allPlayers]
+  );
 
+  // ── DERIVED values (not hooks, safe anywhere) ────────────────────────────
+  const isOk = msg.startsWith("ok:");
+  const msgText = msg.replace(/^(ok|err):/, "");
+
+  // ── HANDLERS (not hooks, safe anywhere) ─────────────────────────────────
+  const togglePlayer = (id) => {
+    if (squadLocked) return;
+    setSelected((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : prev.length < 4 ? [...prev, id] : prev
+    );
+  };
+
+  const saveSquad = async () => {
+    if (selected.length !== 4) { setMsg("err:Select exactly 4 players."); return; }
+    setSaving(true);
+    setMsg("");
+    try {
+      await upsertWeeklySquad(myTeamId, week, year, [profile.id, ...selected]);
+      setSquadLocked(true);
+      setMsg("ok:Squad saved!");
+    } catch (e) {
+      setMsg("err:" + e.message);
+    }
+    setSaving(false);
+  };
+
+  const handleRating = (pid, field, val) => {
+    setRatings((prev) => ({
+      ...prev,
+      [pid]: { ...DEFAULT_RATING, ...(prev[pid] || {}), [field]: parseInt(val, 10) },
+    }));
+  };
+
+  const toggleAbsent = (id) => {
+    setAbsentPlayers((prev) => ({ ...prev, [id]: !prev[id] }));
+    setRatings((prev) => prev[id] ? prev : { ...prev, [id]: { ...DEFAULT_RATING } });
+  };
+
+  const saveRatings = async () => {
+    setSaving(true);
+    setMsg("");
+    const ids = new Set([
+      ...Object.keys(ratings),
+      ...Object.keys(absentPlayers).filter((k) => absentPlayers[k]),
+    ]);
+    if (ids.size === 0) {
+      setMsg("err:Rate at least one player before saving.");
+      setSaving(false);
+      return;
+    }
+    try {
+      for (const pid of ids) {
+        const r = ratings[pid] || DEFAULT_RATING;
+        await upsertRating(
+          profile.id, pid, week, year,
+          r.passing ?? 50, r.shooting ?? 50, r.defending ?? 50, r.dribbling ?? 50,
+          !!absentPlayers[pid]
+        );
+      }
+      setMsg("ok:Ratings saved!");
+    } catch (e) {
+      setMsg("err:" + e.message);
+    }
+    setSaving(false);
+  };
+
+  const handleConfirmTeamName = async () => {
+    const name = teamNameInput.trim();
+    if (!name) return;
+    setConfirmingName(true);
+    try {
+      await confirmTeamName(myTeamId, name);
+      setTeam((prev) => ({ ...prev, name, name_confirmed: true }));
+      setMsg("ok:Team name confirmed successfully!");
+    } catch (e) {
+      setMsg("err:" + e.message);
+    }
+    setConfirmingName(false);
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // NOW all early returns are safe — all hooks are above this line
+  // ════════════════════════════════════════════════════════════════════════
+
+  if (!isCaptain) {
+    return (
+      <div className="card fade-up">
+        <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+          Access denied. Captains only.
+        </div>
+      </div>
+    );
+  }
+
+  if (teamLoading) return <PageLoader />;
+
+  if (!myTeamId) {
+    return (
+      <div className="page fade-up cp-page">
+        <div className="card cp-hero">
+          <div className="cp-hero__row">
+            <div className="cp-hero__icon"><i className="ti ti-shield-star" /></div>
+            <div className="cp-hero__text">
+              <div className="cp-hero__title">Captain panel</div>
+              <div className="cp-hero__sub">Week {week} · {year}</div>
+            </div>
+            <span className="cp-hero__pill"><i className="ti ti-crown" /> Captain</span>
+          </div>
+        </div>
+        <div className="card" style={{ padding: "32px 24px", textAlign: "center" }}>
+          <i className="ti ti-clock" style={{ fontSize: 36, color: "var(--text-muted)", display: "block", marginBottom: 12 }} />
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
+            You haven't been assigned to a team for week {week} yet.
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
+            The admin needs to create a team for the current week and assign you to it.<br />
+            Once assigned, you can select your squad for this week.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
+  // ── STEP 1: Captain confirms team name — only once ───────────────────────
+  if (team && !team.name_confirmed) {
+    return (
+      <div className="page fade-up cp-page">
+        <div className="card cp-hero">
+          <div className="cp-hero__row">
+            <div className="cp-hero__icon"><i className="ti ti-shield-star" /></div>
+            <div className="cp-hero__text">
+              <div className="cp-hero__title">Captain panel</div>
+              <div className="cp-hero__sub">Week {week} · {year}</div>
+            </div>
+            <span className="cp-hero__pill"><i className="ti ti-crown" /> Captain</span>
+          </div>
+        </div>
+        <div className="card" style={{ padding: "32px 24px", textAlign: "center" }}>
+          <i className="ti ti-edit" style={{ fontSize: 40, color: "var(--primary)", display: "block", marginBottom: 14 }} />
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
+            Confirm your team name
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24, lineHeight: 1.6 }}>
+            The admin suggested this name. You can edit it or confirm as is.<br />
+          <strong>This can only be done once.</strong>
+          </div>
+          <input
+            className="admin-input"
+            type="text"
+            value={teamNameInput}
+            onChange={(e) => setTeamNameInput(e.target.value)}
+            placeholder="Team name..."
+            style={{ marginBottom: 16, width: "100%", maxWidth: 300, textAlign: "center", fontSize: 15, fontWeight: 600 }}
+            onKeyDown={(e) => e.key === "Enter" && handleConfirmTeamName()}
+          />
+          <br />
+          <button
+            className="btn btn-primary"
+            disabled={confirmingName || !teamNameInput.trim()}
+            onClick={handleConfirmTeamName}
+            style={{ minWidth: 180 }}
+          >
+            <i className="ti ti-check" />
+            {confirmingName ? "Saving..." : "Confirm team name"}
+          </button>
+          {msg && (
+            <div className={`admin-msg${isOk ? " ok" : " err"}`} style={{ marginTop: 16 }}>
+              {msgText}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── STEP 2: Week is closed ───────────────────────────────────────────────
+  if (!weekLoading && !weekOpen) {
+    return (
+      <div className="page fade-up cp-page">
+        <div className="card cp-hero">
+          <div className="cp-hero__row">
+            <div className="cp-hero__icon"><i className="ti ti-shield-star" /></div>
+            <div className="cp-hero__text">
+              <div className="cp-hero__title">Captain panel</div>
+              <div className="cp-hero__sub">Week {week} · {year}</div>
+            </div>
+            <span className="cp-hero__pill"><i className="ti ti-crown" /> Captain</span>
+          </div>
+        </div>
+        <div className="card" style={{ padding: "32px 24px", textAlign: "center" }}>
+          <i className="ti ti-lock" style={{ fontSize: 40, color: "var(--text-muted)", display: "block", marginBottom: 14 }} />
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
+            Week {week} is not open yet
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
+            Wait for the admin to open access for this week.<br />
+            Once the week is open, you can submit your squad.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── STEP 3: Normal captain panel ─────────────────────────────────────────
   return (
     <div className="page fade-up cp-page">
       <div className="card cp-hero">
         <div className="cp-hero__row">
-          <div className="cp-hero__icon">
-            <i className="ti ti-shield-star" />
-          </div>
+          <div className="cp-hero__icon"><i className="ti ti-shield-star" /></div>
           <div className="cp-hero__text">
             <div className="cp-hero__title">Captain panel</div>
-            <div className="cp-hero__sub">
-              Week {week} · {year}
-            </div>
+            <div className="cp-hero__sub">Week {week} · {year}</div>
           </div>
           <span className="cp-hero__pill">
-            <i className="ti ti-crown" />
-            Captain
+            <i className="ti ti-crown" /> Captain
           </span>
         </div>
 
         <div className="cp-tabs">
           {[
-            {
-              id: "squad",
-              icon: "ti-users-group",
-              label: "Choose squad",
-              count: `${selected.length}/4`,
-            },
-            {
-              id: "rate",
-              icon: "ti-star-filled",
-              label: "Rate players",
-              count: ratedCount || null,
-            },
+            { id: "squad", icon: "ti-users-group", label: "Choose squad", count: `${selected.length}/4` },
+            { id: "rate",  icon: "ti-star-filled",  label: "Rate players",  count: ratedCount || null },
           ].map((t) => (
             <button
               key={t.id}
               className={`cp-tab${tab === t.id ? " cp-tab--active" : ""}`}
-              onClick={() => {
-                setTab(t.id);
-                setMsg("");
-              }}
+              onClick={() => { setTab(t.id); setMsg(""); }}
             >
               <i className={`ti ${t.icon}`} />
               <span>{t.label}</span>
-              {t.count != null && (
-                <span className="cp-tab__count">{t.count}</span>
-              )}
+              {t.count != null && <span className="cp-tab__count">{t.count}</span>}
             </button>
           ))}
         </div>
@@ -407,9 +446,7 @@ export default function CaptainPage() {
             <div className="cp-summary__head">
               <div>
                 <div className="cp-summary__title">Your weekly squad</div>
-                <div className="cp-summary__sub">
-                  Pick 4 teammates · you join as the 5th
-                </div>
+                <div className="cp-summary__sub">Pick 4 teammates · you join as the 5th</div>
               </div>
               <div className="cp-summary__counter">
                 <span className="cp-summary__num">{selected.length}</span>
@@ -428,12 +465,8 @@ export default function CaptainPage() {
                   >
                     {p ? (
                       <>
-                        <div className="cp-slot__avatar">
-                          {getInitials(p.full_name)}
-                        </div>
-                        <div className="cp-slot__name">
-                          {p.full_name.split(" ")[0]}
-                        </div>
+                        <div className="cp-slot__avatar">{getInitials(p.full_name)}</div>
+                        <div className="cp-slot__name">{p.full_name.split(" ")[0]}</div>
                         <PosBadge pos={p.position} />
                         <i className="ti ti-x cp-slot__remove" />
                       </>
@@ -484,9 +517,7 @@ export default function CaptainPage() {
                     className={`cp-player-card${isSel ? " cp-player-card--selected" : ""}${disabled ? " cp-player-card--disabled" : ""}`}
                     onClick={() => !disabled && togglePlayer(p.id)}
                   >
-                    <div className="cp-player-card__avatar">
-                      {getInitials(p.full_name)}
-                    </div>
+                    <div className="cp-player-card__avatar">{getInitials(p.full_name)}</div>
                     <div className="cp-player-card__body">
                       <div className="cp-player-card__name">{p.full_name}</div>
                       <div className="cp-player-card__meta">
@@ -495,24 +526,16 @@ export default function CaptainPage() {
                       </div>
                     </div>
                     <div className="cp-player-card__check">
-                      {isSel ? (
-                        <i className="ti ti-check" />
-                      ) : (
-                        <i className="ti ti-plus" />
-                      )}
+                      {isSel ? <i className="ti ti-check" /> : <i className="ti ti-plus" />}
                     </div>
                   </button>
                 );
               })}
-              {!filteredPlayers.length && (
-                <div className="cp-empty">No players match.</div>
-              )}
+              {!filteredPlayers.length && <div className="cp-empty">No players match.</div>}
             </div>
 
             {msg && (
-              <div
-                className={`admin-msg${isOk ? " admin-msg--ok" : " admin-msg--err"}`}
-              >
+              <div className={`admin-msg${isOk ? " admin-msg--ok" : " admin-msg--err"}`}>
                 {msgText}
               </div>
             )}
@@ -527,18 +550,10 @@ export default function CaptainPage() {
               <div className="cp-action-bar__status">
                 <i
                   className={`ti ${selected.length === 4 ? "ti-circle-check-filled" : "ti-info-circle"}`}
-                  style={{
-                    color:
-                      selected.length === 4
-                        ? "var(--success)"
-                        : "var(--text-muted)",
-                  }}
+                  style={{ color: selected.length === 4 ? "var(--success)" : "var(--text-muted)" }}
                 />
-                {selected.length === 4
-                  ? "Ready to confirm"
-                  : `Pick ${4 - selected.length} more`}
+                {selected.length === 4 ? "Ready to confirm" : `Pick ${4 - selected.length} more`}
               </div>
-
               <button
                 className="btn btn-primary"
                 onClick={() => setConfirmModal({ open: true, type: "squad" })}
@@ -556,9 +571,7 @@ export default function CaptainPage() {
       {tab === "rate" && (
         <>
           <div className="card cp-rate-intro">
-            <div className="cp-rate-intro__icon">
-              <i className="ti ti-star-filled" />
-            </div>
+            <div className="cp-rate-intro__icon"><i className="ti ti-star-filled" /></div>
             <div className="cp-rate-intro__body">
               <div className="cp-rate-intro__title">Rate your teammates</div>
               <div className="cp-rate-intro__sub">
@@ -598,41 +611,29 @@ export default function CaptainPage() {
           <div className="cp-rate-list">
             {filteredPlayers.map((p) => {
               const r = ratings[p.id] || DEFAULT_RATING;
-              const avg = Math.round(
-                (r.passing + r.shooting + r.defending + r.dribbling) / 4,
-              );
+              const avg = Math.round((r.passing + r.shooting + r.defending + r.dribbling) / 4);
               const touched = ratings[p.id] != null || absentPlayers[p.id];
               return (
-                <div
-                  key={p.id}
-                  className={`cp-rate-card${touched ? " cp-rate-card--touched" : ""}`}
-                >
+                <div key={p.id} className={`cp-rate-card${touched ? " cp-rate-card--touched" : ""}`}>
                   <div className="cp-rate-card__head">
-                    <div className="cp-rate-card__avatar">
-                      {getInitials(p.full_name)}
-                    </div>
+                    <div className="cp-rate-card__avatar">{getInitials(p.full_name)}</div>
                     <div className="cp-rate-card__id">
                       <div className="cp-rate-card__name">
                         {p.full_name}
                         <PosBadge pos={p.position} />
                       </div>
-                      <div className="cp-rate-card__role">
-                        {p.role || "player"}
-                      </div>
+                      <div className="cp-rate-card__role">{p.role || "player"}</div>
                       <button
                         type="button"
                         className={`cp-absent-btn ${absentPlayers[p.id] ? "cp-absent-btn--active" : ""}`}
                         onClick={() => toggleAbsent(p.id)}
                       >
-                        <i className="ti ti-user-off" />
-                        Absent
+                        <i className="ti ti-user-off" /> Absent
                       </button>
                     </div>
                     <div
                       className="cp-rate-card__avg"
-                      style={{
-                        background: `conic-gradient(${ratingTone(avg)} ${avg * 3.6}deg, var(--bg-secondary) 0deg)`,
-                      }}
+                      style={{ background: `conic-gradient(${ratingTone(avg)} ${avg * 3.6}deg, var(--bg-secondary) 0deg)` }}
                     >
                       <div className="cp-rate-card__avg-inner">
                         <span className="cp-rate-card__avg-num">{avg}</span>
@@ -642,8 +643,7 @@ export default function CaptainPage() {
                   </div>
                   {absentPlayers[p.id] ? (
                     <div className="cp-player-absent">
-                      <i className="ti ti-user-off" />
-                      Player was absent this week
+                      <i className="ti ti-user-off" /> Player was absent this week
                     </div>
                   ) : (
                     <div className="cp-rate-grid">
@@ -653,36 +653,17 @@ export default function CaptainPage() {
                         return (
                           <div key={f.key} className="cp-rate-stat">
                             <div className="cp-rate-stat__head">
-                              <i
-                                className={`ti ${f.icon}`}
-                                style={{ color: f.color }}
-                              />
-                              <span className="cp-rate-stat__label">
-                                {f.label}
-                              </span>
-                              <span
-                                className="cp-rate-stat__val"
-                                style={{ color: tone }}
-                              >
-                                {v}
-                              </span>
+                              <i className={`ti ${f.icon}`} style={{ color: f.color }} />
+                              <span className="cp-rate-stat__label">{f.label}</span>
+                              <span className="cp-rate-stat__val" style={{ color: tone }}>{v}</span>
                             </div>
                             <div className="cp-rate-stat__slider">
                               <div className="cp-rate-stat__track">
-                                <div
-                                  className="cp-rate-stat__fill"
-                                  style={{ width: `${v}%`, background: tone }}
-                                />
+                                <div className="cp-rate-stat__fill" style={{ width: `${v}%`, background: tone }} />
                               </div>
                               <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="1"
-                                value={v}
-                                onChange={(e) =>
-                                  handleRating(p.id, f.key, e.target.value)
-                                }
+                                type="range" min="0" max="100" step="1" value={v}
+                                onChange={(e) => handleRating(p.id, f.key, e.target.value)}
                                 style={{ "--thumb-color": tone }}
                               />
                             </div>
@@ -694,15 +675,11 @@ export default function CaptainPage() {
                 </div>
               );
             })}
-            {!filteredPlayers.length && (
-              <div className="cp-empty">No players match.</div>
-            )}
+            {!filteredPlayers.length && <div className="cp-empty">No players match.</div>}
           </div>
 
           {msg && (
-            <div
-              className={`admin-msg${isOk ? " admin-msg--ok" : " admin-msg--err"}`}
-            >
+            <div className={`admin-msg${isOk ? " admin-msg--ok" : " admin-msg--err"}`}>
               {msgText}
             </div>
           )}
@@ -729,81 +706,42 @@ export default function CaptainPage() {
           <div
             className="cp-modal-backdrop"
             onMouseDown={(e) => {
-              if (e.target === e.currentTarget && !saving) {
+              if (e.target === e.currentTarget && !saving)
                 setConfirmModal({ open: false, type: null });
-              }
             }}
           >
             <div className="cp-modal" role="dialog" aria-modal="true">
-              <div
-                className={`cp-modal__icon ${
-                  confirmModal.type === "ratings"
-                    ? "cp-modal__icon--rating"
-                    : ""
-                }`}
-              >
-                <i
-                  className={`ti ${
-                    confirmModal.type === "ratings"
-                      ? "ti-star-filled"
-                      : "ti-shield-check"
-                  }`}
-                />
+              <div className={`cp-modal__icon ${confirmModal.type === "ratings" ? "cp-modal__icon--rating" : ""}`}>
+                <i className={`ti ${confirmModal.type === "ratings" ? "ti-star-filled" : "ti-shield-check"}`} />
               </div>
-
-              <div className="cp-modal__eyebrow">
-                Week {week} · {year}
-              </div>
-
-              <h3>
-                {confirmModal.type === "squad"
-                  ? "Confirm Squad"
-                  : "Submit Ratings"}
-              </h3>
-
+              <div className="cp-modal__eyebrow">Week {week} · {year}</div>
+              <h3>{confirmModal.type === "squad" ? "Confirm Squad" : "Submit Ratings"}</h3>
               <p>
                 {confirmModal.type === "squad"
                   ? "You are about to submit your weekly squad. Please review your selection carefully before continuing."
                   : "You are about to submit player ratings. Please make sure all values are correct before continuing."}
               </p>
-
               <div className="cp-modal__info">
-                {confirmModal.type === "squad"
-                  ? `${selected.length}/4 players selected`
-                  : `${ratedCount} players rated`}
+                {confirmModal.type === "squad" ? `${selected.length}/4 players selected` : `${ratedCount} players rated`}
               </div>
-
               <div className="cp-modal__warning">
-                <i className="ti ti-alert-triangle" />
-                This action may not be reversible.
+                <i className="ti ti-alert-triangle" /> This action may not be reversible.
               </div>
-
               <div className="cp-modal__actions">
                 <button
-                  type="button"
-                  className="btn"
-                  disabled={saving}
+                  type="button" className="btn" disabled={saving}
                   onClick={() => setConfirmModal({ open: false, type: null })}
                 >
                   Go Back
                 </button>
-
                 <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={saving}
+                  type="button" className="btn btn-primary" disabled={saving}
                   onClick={async () => {
                     try {
-                      if (confirmModal.type === "squad") {
-                        await saveSquad();
-                      } else {
-                        await saveRatings();
-                      }
+                      if (confirmModal.type === "squad") await saveSquad();
+                      else await saveRatings();
                     } finally {
-                      setConfirmModal({
-                        open: false,
-                        type: null,
-                      });
+                      setConfirmModal({ open: false, type: null });
                     }
                   }}
                 >
@@ -812,7 +750,7 @@ export default function CaptainPage() {
               </div>
             </div>
           </div>,
-          document.body,
+          document.body
         )}
     </div>
   );

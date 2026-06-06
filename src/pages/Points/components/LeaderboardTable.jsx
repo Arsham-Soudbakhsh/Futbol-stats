@@ -1,7 +1,7 @@
 import React from "react";
 import PlayerRow from "./PlayerRow";
 
-export default function LeaderboardTable({ rows, maxPts }) {
+export default function LeaderboardTable({ rows, maxPts, onSelect }) {
   return (
     <div className="rt-wrap">
       <table className="pts-table">
@@ -18,7 +18,7 @@ export default function LeaderboardTable({ rows, maxPts }) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <PlayerRow key={row.id} row={row} index={i} maxPts={maxPts} />
+            <PlayerRow key={row.id} row={row} index={i} maxPts={maxPts} onSelect={onSelect} />
           ))}
         </tbody>
       </table>

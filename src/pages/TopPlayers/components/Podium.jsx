@@ -1,12 +1,15 @@
 import React from "react";
 import RatingRing from "./RatingRing";
 
-// Top-3 cards shown above the table.
-export default function Podium({ podium }) {
+export default function Podium({ podium, onSelect }) {
   return (
     <div className="podium-grid">
       {podium.map((p, i) => (
-        <div key={p.id} className={`podium-card podium-${i}`}>
+        <div
+          key={p.id}
+          className={`podium-card podium-${i} row-clickable`}
+          onClick={() => onSelect?.(p)}
+        >
           <div className="podium-medal">
             {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
           </div>

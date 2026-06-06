@@ -23,7 +23,7 @@ export default function TeamStatsTab({
           <i className="ti ti-shield" /> Team stats
         </div>
       </div>
-      <p className="admin-hint">آمار تجمعی هفته {week} رو وارد کن.</p>
+      <p className="admin-hint">Enter cumulative stats for week {week}.</p>
 
       {teams.length === 0 ? (
         <PageLoader label="Loading teams" minHeight={140} />
@@ -31,8 +31,7 @@ export default function TeamStatsTab({
         <div className="admin-list">
           {teamsReady.length === 0 && (
             <div className="admin-empty">
-              هنوز هیچ تیمی کاپیتان ندارد. ابتدا از تب «مدیریت تیم‌ها» یک
-              کاپیتان به تیم assign کنید.
+              No teams have a captain yet. First assign a captain from the "Team Management" tab.
             </div>
           )}
 
@@ -85,7 +84,7 @@ function TeamStatsRow({ team: t, stats: s, roster, week, handleTeamChange }) {
               {roster.captain.full_name}
             </>
           ) : (
-            "بدون کاپیتان"
+            "No captain"
           )}
         </div>
       </div>
@@ -102,7 +101,7 @@ function TeamStatsRow({ team: t, stats: s, roster, week, handleTeamChange }) {
           ))}
           {!roster.squadMembers.length && (
             <span className="chip-empty">
-              <i className="ti ti-clock" /> Squad هفته {week} هنوز ثبت نشده
+              <i className="ti ti-clock" /> Squad not submitted yet for week {week}
             </span>
           )}
         </div>

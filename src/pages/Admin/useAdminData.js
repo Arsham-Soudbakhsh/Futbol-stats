@@ -7,8 +7,7 @@ import {
   upsertAward,
   upsertMultiAward,
   upsertTeamOfWeekAward,
-  getTeams,
-  getTeamWeeklyStats,
+  getTeamsForWeek,
   getAllTeamWeeklyStats,
   upsertTeamWeeklyStats,
   createInviteCode,
@@ -16,21 +15,29 @@ import {
   deleteInviteCodeById,
   getAllCaptains,
   createTeam,
-  assignTeamToCaptain,
+  assignCaptainToTeamForWeek,
+  unassignCaptainForWeek,
+  getCaptainTeamMapForWeek,
   getAllSquadsForWeek,
   renameTeam,
+  deleteTeam,
+  getWeekAccess,
+  setWeekAccess,
 } from "../../services";
 import { MULTI_WINNER_AWARDS } from "../../utils/points";
 
 /**
  * Single hook that owns every read+write the admin page needs.
- * Returning a giant object keeps the page itself thin and lets each
- * tab destructure exactly what it cares about.
+ *
+ * Teams and captain↔team assignments are PER-WEEK. Switching the week reloads
+ * a fresh set of teams (created for that specific week) and a fresh
+ * captain→team map, so previous weeks' data never leaks in.
  */
 export function useAdminData({ week, year }) {
   const [players, setPlayers] = useState([]);
-  const [teams, setTeams] = useState([]);
+  const [teams, setTeams] = useState([]); // teams for the CURRENT week only
   const [captains, setCaptains] = useState([]);
+  const [captainTeamMap, setCaptainTeamMap] = useState({}); // captainId -> teamId (this week)
   const [inviteCodes, setInviteCodes] = useState([]);
   const [squads, setSquads] = useState([]);
 
@@ -44,30 +51,43 @@ export function useAdminData({ week, year }) {
   const [assignMap, setAssignMap] = useState({});
   const [teamNameEdits, setTeamNameEdits] = useState({});
 
+  // ── Week access ──────────────────────────────────────────────────────────
+  const [weekOpen, setWeekOpen] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // -- initial load -----------------------------------------------------
+  // -- one-time loads (not week-dependent) -----------------------------
   useEffect(() => {
     getAllPlayers().then((list) =>
-      setPlayers(list.filter((p) => p.role !== "admin")),
+      setPlayers(list.filter((p) => p.role !== "admin"))
     );
-    getTeams().then(setTeams);
     getInviteCodes().then(setInviteCodes);
     getAllCaptains().then(setCaptains);
   }, []);
 
   // -- per-week loaders -------------------------------------------------
+  // Teams + captain assignments + squads reset every time the week changes.
   useEffect(() => {
+    // Clear immediately so the UI never flashes stale data from a prior week.
+    setTeams([]);
+    setCaptainTeamMap({});
+    setAssignMap({});
+    setTeamNameEdits({});
+
+    getTeamsForWeek(week, year).then(setTeams);
+    getCaptainTeamMapForWeek(week, year).then(setCaptainTeamMap);
     getAllSquadsForWeek(week, year).then(setSquads);
+    getWeekAccess(week, year).then((wa) => setWeekOpen(wa?.open === true));
+
     getAwards(week, year).then((awards) => {
       setExistingAwards(awards);
       const form = {};
       awards.forEach((a) => {
         if (a.award_type === "best_team_week") return;
         if (MULTI_WINNER_AWARDS.has(a.award_type)) {
-          // Multi-winner: store as array of player_ids
-          form[a.award_type] = a.player_ids || (a.player_id ? [a.player_id] : []);
+          form[a.award_type] =
+            a.player_ids || (a.player_id ? [a.player_id] : []);
         } else {
           form[a.award_type] = a.player_id || "";
         }
@@ -77,7 +97,7 @@ export function useAdminData({ week, year }) {
       setTeamOfWeekForm(
         teamAward?.player_ids
           ? [...teamAward.player_ids, "", "", "", "", ""].slice(0, 5)
-          : ["", "", "", "", ""],
+          : ["", "", "", "", ""]
       );
     });
   }, [week, year]);
@@ -97,9 +117,11 @@ export function useAdminData({ week, year }) {
   }, [week, year]);
 
   useEffect(() => {
-    if (!teams.length) return;
+    if (!teams.length) {
+      setTeamForm({});
+      return;
+    }
     (async () => {
-      // PERF FIX: single bulk fetch instead of one request per team
       const allTs = await getAllTeamWeeklyStats(week, year);
       const map = {};
       allTs.forEach((ts) => {
@@ -130,15 +152,18 @@ export function useAdminData({ week, year }) {
     }));
 
   const reloadInvites = async () => setInviteCodes(await getInviteCodes());
-  const reloadTeamsAndCaptains = async () => {
-    const [t, c, sq] = await Promise.all([
-      getTeams(),
+
+  const reloadWeekScopedData = async () => {
+    const [t, c, sq, map] = await Promise.all([
+      getTeamsForWeek(week, year),
       getAllCaptains(),
       getAllSquadsForWeek(week, year),
+      getCaptainTeamMapForWeek(week, year),
     ]);
     setTeams(t);
     setCaptains(c);
     setSquads(sq);
+    setCaptainTeamMap(map);
   };
 
   // -- save handlers ----------------------------------------------------
@@ -188,7 +213,6 @@ export function useAdminData({ week, year }) {
       for (const [type, val] of Object.entries(awardForm)) {
         if (type === "best_team_week") continue;
         if (MULTI_WINNER_AWARDS.has(type)) {
-          // val is an array of player IDs
           const ids = (val || []).filter(Boolean);
           if (ids.length > 0) await upsertMultiAward(type, ids, week, year);
         } else {
@@ -196,8 +220,6 @@ export function useAdminData({ week, year }) {
           await upsertAward(type, val, week, year);
         }
       }
-      // BUG FIX: always save best_team_week even if empty (so it clears properly),
-      // but only if at least one player was selected.
       const teamIds = teamOfWeekForm.filter(Boolean);
       if (teamIds.length > 0) await upsertTeamOfWeekAward(teamIds, week, year);
       setExistingAwards(await getAwards(week, year));
@@ -226,15 +248,16 @@ export function useAdminData({ week, year }) {
   const handleCreateTeam = async () => {
     const name = newTeamName.trim();
     if (!name) {
-      setMsg("❌ نام تیم را وارد کنید.");
+      setMsg("❌ Please enter a team name.");
       return;
     }
     setSaving(true);
     try {
-      await createTeam(name, null);
+      // Team is scoped to the current week.
+      await createTeam(name, null, week, year);
       setNewTeamName("");
-      await reloadTeamsAndCaptains();
-      setMsg("✅ تیم ساخته شد!");
+      await reloadWeekScopedData();
+      setMsg(`✅ Team created (week ${week})!`);
     } catch (e) {
       setMsg("❌ " + e.message);
     }
@@ -243,15 +266,16 @@ export function useAdminData({ week, year }) {
 
   const handleAssignCaptain = async (captainId) => {
     const teamId = assignMap[captainId];
-    if (!teamId) {
-      setMsg("❌ ابتدا یک تیم انتخاب کنید.");
-      return;
-    }
     setSaving(true);
     try {
-      await assignTeamToCaptain(captainId, teamId);
-      await reloadTeamsAndCaptains();
-      setMsg("✅ کاپیتان به تیم اضافه شد!");
+      if (!teamId) {
+        await unassignCaptainForWeek(captainId, week, year);
+        setMsg("✅ Captain removed from this week's team.");
+      } else {
+        await assignCaptainToTeamForWeek(captainId, teamId, week, year);
+        setMsg(`✅ Captain assigned to team (week ${week})!`);
+      }
+      await reloadWeekScopedData();
     } catch (e) {
       setMsg("❌ " + e.message);
     }
@@ -261,14 +285,46 @@ export function useAdminData({ week, year }) {
   const handleRenameTeam = async (teamId) => {
     const name = (teamNameEdits[teamId] || "").trim();
     if (!name) {
-      setMsg("❌ نام تیم خالی است.");
+      setMsg("❌ Team name is empty.");
       return;
     }
     setSaving(true);
     try {
       await renameTeam(teamId, name);
-      await reloadTeamsAndCaptains();
-      setMsg("✅ نام تیم بروزرسانی شد!");
+      await reloadWeekScopedData();
+      setMsg("✅ Team name updated!");
+    } catch (e) {
+      setMsg("❌ " + e.message);
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteTeam = async (teamId) => {
+    if (!window.confirm("Delete this team (for this week only)?")) return;
+    setSaving(true);
+    try {
+      await deleteTeam(teamId);
+      await reloadWeekScopedData();
+      setMsg("✅ Team deleted.");
+    } catch (e) {
+      setMsg("❌ " + e.message);
+    }
+    setSaving(false);
+  };
+
+  // ── Week access toggle ───────────────────────────────────────────────────
+  const toggleWeekAccess = async () => {
+    setSaving(true);
+    setMsg("");
+    try {
+      const next = !weekOpen;
+      await setWeekAccess(week, year, next);
+      setWeekOpen(next);
+      setMsg(
+        next
+          ? `✅ Week ${week} is now open — captains can submit their squads.`
+          : `✅ Week ${week} is now closed — captains can no longer make changes.`
+      );
     } catch (e) {
       setMsg("❌ " + e.message);
     }
@@ -276,15 +332,21 @@ export function useAdminData({ week, year }) {
   };
 
   // -- derived ----------------------------------------------------------
-  const captainsPerTeam = captains.reduce((acc, c) => {
-    if (c.team_id) acc[c.team_id] = (acc[c.team_id] || 0) + 1;
+  // captain→team via the per-week map (NOT profile.team_id, which is global).
+  const captainsPerTeam = Object.values(captainTeamMap).reduce((acc, tid) => {
+    if (tid) acc[tid] = (acc[tid] || 0) + 1;
     return acc;
   }, {});
   const teamsReady = teams.filter((t) => (captainsPerTeam[t.id] || 0) >= 1);
 
   const teamRosters = {};
   teams.forEach((t) => {
-    const captain = captains.find((c) => c.team_id === t.id) || null;
+    const captainId = Object.keys(captainTeamMap).find(
+      (cid) => captainTeamMap[cid] === t.id
+    );
+    const captain = captainId
+      ? captains.find((c) => c.id === captainId) || null
+      : null;
     let squadMembers = [];
     if (captain) {
       const sq = squads.find((s) => (s.player_ids || [])[0] === captain.id);
@@ -303,6 +365,7 @@ export function useAdminData({ week, year }) {
     players,
     teams,
     captains,
+    captainTeamMap,
     inviteCodes,
     squads,
     // form state
@@ -319,6 +382,9 @@ export function useAdminData({ week, year }) {
     setAssignMap,
     teamNameEdits,
     setTeamNameEdits,
+    // week access
+    weekOpen,
+    toggleWeekAccess,
     // status
     saving,
     msg,
@@ -336,6 +402,7 @@ export function useAdminData({ week, year }) {
     handleCreateTeam,
     handleAssignCaptain,
     handleRenameTeam,
+    handleDeleteTeam,
     // derived
     captainsPerTeam,
     teamsReady,

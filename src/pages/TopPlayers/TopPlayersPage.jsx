@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { PageLoader } from "../../components/common/Loader";
 import ModeSwitch from "../../components/common/ModeSwitch";
+import PlayerProfileDrawer from "../../components/common/PlayerProfileDrawer";
 import { WeekContext } from "../../components/layout/WeekContext";
 import { useAuthStore } from "../../store/authStore";
 import { useTopPlayersData } from "./useTopPlayersData";
@@ -8,14 +9,11 @@ import Podium from "./components/Podium";
 import RatingsTable from "./components/RatingsTable";
 import "./TopPlayers.css";
 
-/**
- * TopPlayersPage — podium for the top-3 and a full ratings table below.
- * Switches between week / season averages.
- */
 export default function TopPlayersPage() {
   const { week, year } = useContext(WeekContext);
   const { profile } = useAuthStore();
   const [mode, setMode] = useState("week");
+  const [selected, setSelected] = useState(null);
 
   const { players, loading } = useTopPlayersData({ week, year, profile, mode });
 
@@ -28,13 +26,12 @@ export default function TopPlayersPage() {
     <div className="page fade-up tp-page">
       <div className="tga-toolbar">
         <div className="card-title" style={{ margin: 0 }}>
-          <i className="ti ti-star" />
-          Top players
+          <i className="ti ti-star" /> Top players
         </div>
         <ModeSwitch mode={mode} setMode={setMode} week={week} />
       </div>
 
-      {hasRatings && <Podium podium={podium} />}
+      {hasRatings && <Podium podium={podium} onSelect={setSelected} />}
 
       <div className="card">
         {!hasRatings ? (
@@ -46,9 +43,15 @@ export default function TopPlayersPage() {
             </div>
           </div>
         ) : (
-          <RatingsTable players={players} />
+          <RatingsTable players={players} onSelect={setSelected} />
         )}
       </div>
+
+      <PlayerProfileDrawer
+        player={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 }
