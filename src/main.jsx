@@ -1,24 +1,28 @@
-import React, { useEffect } from "react";
+import React, { useEffect, lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import "./index.css";
 import { useAuthStore } from "./store/authStore";
 import { setupPWA } from "./pwa";
+import { PageLoader } from "./components/common/Loader";
 
 setupPWA();
 
+// These two are always needed immediately — keep them eager
 import AuthPage from "./pages/Auth";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import HomePage from "./pages/Home";
-import LeaguePage from "./pages/League";
-import BestTeamPage from "./pages/BestTeam";
-import TopPlayersPage from "./pages/TopPlayers";
-import TopGAPage from "./pages/TopGA";
-import PointsPage from "./pages/Points";
-import AdminPage from "./pages/Admin";
-import CaptainPage from "./pages/Captain";
-import { PageLoader } from "./components/common/Loader";
+
+// All other pages: load on demand (code-splitting)
+// Vite automatically creates separate JS chunks for each of these
+const LeaguePage     = lazy(() => import("./pages/League"));
+const BestTeamPage   = lazy(() => import("./pages/BestTeam"));
+const TopPlayersPage = lazy(() => import("./pages/TopPlayers"));
+const TopGAPage      = lazy(() => import("./pages/TopGA"));
+const PointsPage     = lazy(() => import("./pages/Points"));
+const AdminPage      = lazy(() => import("./pages/Admin"));
+const CaptainPage    = lazy(() => import("./pages/Captain"));
 
 function LoadingScreen() {
   return <PageLoader label="Loading" minHeight={"100vh"} />;
@@ -51,13 +55,13 @@ function App() {
           }
         >
           <Route index element={<HomePage />} />
-          <Route path="league" element={<LeaguePage />} />
-          <Route path="best-team" element={<BestTeamPage />} />
-          <Route path="top-players" element={<TopPlayersPage />} />
-          <Route path="top-ga" element={<TopGAPage />} />
-          <Route path="points" element={<PointsPage />} />
-          <Route path="admin" element={<AdminPage />} />
-          <Route path="captain" element={<CaptainPage />} />
+          <Route path="league"       element={<Suspense fallback={<LoadingScreen />}><LeaguePage /></Suspense>} />
+          <Route path="best-team"    element={<Suspense fallback={<LoadingScreen />}><BestTeamPage /></Suspense>} />
+          <Route path="top-players"  element={<Suspense fallback={<LoadingScreen />}><TopPlayersPage /></Suspense>} />
+          <Route path="top-ga"       element={<Suspense fallback={<LoadingScreen />}><TopGAPage /></Suspense>} />
+          <Route path="points"       element={<Suspense fallback={<LoadingScreen />}><PointsPage /></Suspense>} />
+          <Route path="admin"        element={<Suspense fallback={<LoadingScreen />}><AdminPage /></Suspense>} />
+          <Route path="captain"      element={<Suspense fallback={<LoadingScreen />}><CaptainPage /></Suspense>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

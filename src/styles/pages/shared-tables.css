@@ -34,6 +34,8 @@
   box-shadow: 0 2px 8px var(--primary-glow);
 }
 .mode-btn i { font-size: 13px; }
+.mode-btn__full { display: inline; }
+.mode-btn__short { display: none; }
 
 /* ---- Rank pill ---- */
 .rank-pill {
@@ -106,3 +108,122 @@
 .tp-table tr.me td { background: var(--primary-soft); }
 .pts-table .r, .tga-table .r, .tp-table .r { text-align: right; }
 
+
+/* ════════════════════════════════════════════════════════════
+   Responsive — Points / TopGA / TopPlayers
+   Strategy: the ENTIRE table scrolls horizontally inside .rt-wrap.
+   No sticky columns — the user explicitly asked for full-table scroll
+   so the row highlight, hover, and column alignment stay consistent
+   without per-cell sticky positioning quirks on iOS Safari.
+   ════════════════════════════════════════════════════════════ */
+
+.rt-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  border-radius: inherit;
+}
+.rt-wrap::-webkit-scrollbar { height: 6px; }
+.rt-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.rt-wrap::-webkit-scrollbar-track { background: transparent; }
+
+.pts-table, .tga-table, .tp-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Ensure tables don't collapse columns on small screens —
+   they keep a sensible min-width and the whole row scrolls together. */
+.pts-table { min-width: 560px; }
+.tga-table { min-width: 480px; }
+.tp-table  { min-width: 620px; }
+
+/* ─── Tablet (≤ 900px) ─── */
+@media (max-width: 900px) {
+  .tga-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ─── 
+Mobile (≤ 768px) ─── */
+@media (max-width: 768px) {
+  /* Header rows STAY in a single row — title left, switch right.
+     Use grid so the title can truncate and the switch keeps its size. */
+  .pts-header,
+  .tga-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+  .pts-header { padding: 12px 14px; }
+
+  .pts-header .card-title,
+  .tga-toolbar .card-title {
+    font-size: 13px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pts-header .card-title i,
+  .tga-toolbar .card-title i { flex-shrink: 0; font-size: 15px; }
+
+  /* Compact the mode switch so it always fits next to the title */
+  .mode-switch { padding: 2px; gap: 2px; }
+  .mode-btn { padding: 5px 9px; font-size: 10.5px; gap: 4px; }
+  .mode-btn i { font-size: 12px; }
+  .mode-btn__full { display: none; }
+  .mode-btn__short { display: inline; }
+
+  /* Table cell sizing tightened for mobile */
+  .pts-table th, .tga-table th, .tp-table th { padding: 7px 8px; font-size: 9.5px; }
+  .pts-table td, .tga-table td, .tp-table td { padding: 9px 8px; }
+
+  /* Names don't wrap inside scrollable tables */
+  .points-page .player-name,
+  .tga-card    .player-name,
+  .tp-card     .player-name { white-space: nowrap; }
+  .points-page .player-line,
+  .tga-card    .tga-player,
+  .tp-card     .tp-player { flex-wrap: nowrap; }
+
+  .points-page .player-cell { min-width: 160px; }
+  .tga-card .tga-player { min-width: 110px; }
+  .tga-card .tga-bar-col { min-width: 80px; }
+  .tp-card  .tp-player { min-width: 150px; gap: 8px; }
+
+  /* Podium: keep 3 columns but compact */
+  .podium-grid { gap: 8px; }
+  .podium-card { padding: 10px 8px; gap: 4px; }
+  .podium-medal { font-size: 18px; }
+  .podium-name { font-size: 11px; }
+  .podium-meta { font-size: 9px; }
+
+  /* Scoring legend grid */
+  .scoring-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ─── Small mobile (≤ 480px) ─── */
+@media (max-width: 480px) {
+  .pts-header,
+  .tga-toolbar { gap: 8px; }
+  .pts-header .card-title,
+  .tga-toolbar .card-title { font-size: 12px; }
+  .mode-btn { padding: 5px 8px; font-size: 10px; }
+  .pts-table th, .tga-table th, .tp-table th { padding: 6px 7px; }
+  .pts-table td, .tga-table td, .tp-table td { padding: 8px 7px; }
+
+  .podium-grid { grid-template-columns: repeat(3, 1fr); }
+  .podium-card { padding: 9px 6px; }
+  .podium-medal { font-size: 16px; }
+}
+
+@media (max-width: 360px) {
+  .scoring-grid { grid-template-columns: 1fr !important; }
+}

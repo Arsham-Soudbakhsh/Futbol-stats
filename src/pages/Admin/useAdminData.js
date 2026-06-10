@@ -18,6 +18,7 @@ import {
   assignCaptainToTeamForWeek,
   unassignCaptainForWeek,
   getCaptainTeamMapForWeek,
+  bustCache,
   getAllSquadsForWeek,
   renameTeam,
   deleteTeam,
@@ -179,6 +180,7 @@ export function useAdminData({ week, year }) {
         });
       }
       setMsg("✅ Player stats saved!");
+      bustCache();
     } catch (e) {
       setMsg("❌ " + e.message);
     }
@@ -222,6 +224,7 @@ export function useAdminData({ week, year }) {
       }
       const teamIds = teamOfWeekForm.filter(Boolean);
       if (teamIds.length > 0) await upsertTeamOfWeekAward(teamIds, week, year);
+      bustCache(); // flush stale data so pages see fresh results
       setExistingAwards(await getAwards(week, year));
       setMsg("✅ Awards saved!");
     } catch (e) {

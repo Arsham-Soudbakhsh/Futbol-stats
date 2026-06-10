@@ -1,12 +1,33 @@
-import React from "react";
+import React, { useMemo } from "react";
 import RankBadge from "./RankBadge";
 import MiniBar from "./MiniBar";
+
+/**
+ * "Standard competition" ranking: tied values share the same rank,
+ * and the next distinct value skips ahead. E.g. [8, 8, 8, 5] -> [1, 1, 1, 4].
+ * Rows are assumed to be already sorted in descending order by `valKey`.
+ */
+function computeRanks(rows, valKey) {
+  const ranks = new Array(rows.length);
+  let lastRank = 0;
+  let lastValue = null;
+  rows.forEach((row, i) => {
+    const v = valKey(row);
+    if (i === 0 || v !== lastValue) {
+      lastRank = i + 1;
+      lastValue = v;
+    }
+    ranks[i] = lastRank;
+  });
+  return ranks;
+}
 
 export default function LeaderCard({
   title, icon, accent, rows, valKey, extraCols, emptyLabel, onSelect,
 }) {
   const max = rows[0] ? valKey(rows[0]) : 0;
   const hasData = rows.some((r) => valKey(r) > 0);
+  const ranks = useMemo(() => computeRanks(rows, valKey), [rows, valKey]);
 
   return (
     <div className="tga-card card">
@@ -41,7 +62,9 @@ export default function LeaderCard({
                   className={`row-clickable ${p.me ? "me" : ""}`}
                   onClick={() => onSelect?.(p)}
                 >
-                  <td style={{ textAlign: "center" }}><RankBadge i={i} /></td>
+                  <td style={{ textAlign: "center" }}>
+                    <RankBadge rank={ranks[i]} />
+                  </td>
                   <td>
                     <div className="tga-player">
                       <span className={`player-name ${p.me ? "is-me" : ""}`}>{p.full_name}</span>

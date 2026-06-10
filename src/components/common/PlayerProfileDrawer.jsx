@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   getAllStats,
   getAllAwards,
@@ -9,11 +10,15 @@ import { avgRatings, AWARD_LABELS, calcStatPoints, calcAwardPoints } from "../..
 import "./PlayerProfileDrawer.css";
 
 /**
- * Right-side sliding panel that shows a FUT-style card for the selected
- * player, their season stats, awards and a positional performance chart.
+ * Player profile drawer.
+ * - Desktop/tablet: slides from the right.
+ * - Mobile (<=640px): bottom sheet (CSS handles this).
  *
- * The card is pinned to the top of the panel and never scrolls. Only the
- * info / chart area below the card scrolls.
+ * Rendered via a React Portal to document.body so that no transformed /
+ * filtered / contained ancestor can affect its `position: fixed` placement.
+ * This fixes:
+ *   1) drawer appearing below the fold instead of centered on screen
+ *   2) drawer only taking up the parent's width on mobile (empty right side)
  */
 export default function PlayerProfileDrawer({ player, open, onClose }) {
   const [data, setData] = useState(null);
@@ -41,6 +46,20 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // Lock body scroll while open (prevents background scrolling on mobile)
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const scrollBarW = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (scrollBarW > 0) document.body.style.paddingRight = `${scrollBarW}px`;
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
+    };
+  }, [open]);
+
   const summary = useMemo(() => {
     if (!data || !player) return null;
     const myStats = data.stats.filter((s) => s.player_id === player.id);
@@ -50,7 +69,7 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
     const matches = myStats.length;
 
     const myRatings = data.ratings.filter((r) => r.to_player_id === player.id && !r.absent);
-    const skills = avgRatings(myRatings); // {passing, shooting, defending, dribbling, avg}
+    const skills = avgRatings(myRatings);
 
     const myAwards = data.awards.filter((a) => {
       const ids = Array.isArray(a.player_ids) && a.player_ids.length
@@ -61,27 +80,21 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
 
     const statPts = calcStatPoints({ goals, assists, clean_sheets });
     const awardPts = calcAwardPoints(myAwards);
+    const totalPts = statPts + awardPts;
 
-    // Position chart: aggregate season avg for every player in same position
-    const ratingsByPlayer = {};
-    data.ratings.forEach((r) => {
-      if (r.absent) return;
-      (ratingsByPlayer[r.to_player_id] ||= []).push(r);
-    });
-    const posMates = data.players
-      .filter((p) => p.position && p.position === player.position)
-      .map((p) => ({
-        id: p.id,
-        avg: avgRatings(ratingsByPlayer[p.id] || []).avg,
-        me: p.id === player.id,
-      }))
+    const posMates = (data.players || [])
+      .filter((p) => p.position === player.position)
+      .map((p) => {
+        const rs = data.ratings.filter((r) => r.to_player_id === p.id && !r.absent);
+        const a = avgRatings(rs).avg || 0;
+        return { id: p.id, name: p.full_name, avg: a, me: p.id === player.id };
+      })
       .sort((a, b) => b.avg - a.avg);
 
     return {
       goals, assists, clean_sheets, matches,
       skills, awards: myAwards,
-      totalPts: statPts + awardPts,
-      statPts, awardPts,
+      statPts, awardPts, totalPts,
       posMates,
     };
   }, [data, player]);
@@ -89,7 +102,10 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
   const initials = (player?.full_name || "?")
     .split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
-  return (
+  // SSR safety
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <>
       <div className={`ppd-overlay ${open ? "is-open" : ""}`} onClick={onClose} />
       <aside className={`ppd ${open ? "is-open" : ""}`} role="dialog" aria-modal="true">
@@ -167,7 +183,8 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
           )}
         </div>
       </aside>
-    </>
+    </>,
+    document.body
   );
 }
 

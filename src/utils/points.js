@@ -52,7 +52,8 @@ export const avgRatings = (ratings) => {
   const s  = Math.round(sum.shooting  / n)
   const d  = Math.round(sum.defending / n)
   const dr = Math.round(sum.dribbling / n)
-  return { passing: p, shooting: s, defending: d, dribbling: dr, avg: Math.round((p+s+d+dr)/4) }
+  const rawAvg = (sum.passing + sum.shooting + sum.defending + sum.dribbling) / (4 * n)
+  return { passing: p, shooting: s, defending: d, dribbling: dr, avg: Math.round((p+s+d+dr)/4), rawAvg }
 }
 
 // avgRatingsStrict: مثل avgRatings ولی فقط وقتی دقیقاً requiredCount ریتر فعال داشت

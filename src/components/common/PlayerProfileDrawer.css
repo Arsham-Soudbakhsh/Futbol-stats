@@ -1,132 +1,199 @@
-/* Player profile drawer — sliding panel from the right */
+/* ============================================================
+   Player profile drawer
+   - Desktop / tablet: slides in from the right (panel)
+   - Mobile (<=640px): slides up from the bottom (bottom sheet)
+   - No more horizontal page scroll when closed (visibility:hidden
+     + translateX/Y(100%) instead of 105%)
+   ============================================================ */
+
 .ppd-overlay {
   position: fixed; inset: 0;
-  background: color-mix(in oklab, #000 55%, transparent);
-  backdrop-filter: blur(4px);
+  background: color-mix(in oklab, #000 60%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   opacity: 0; pointer-events: none;
-  transition: opacity .22s ease;
+  transition: opacity .25s ease;
   z-index: 90;
 }
 .ppd-overlay.is-open { opacity: 1; pointer-events: auto; }
 
+/* -------- Base panel (desktop: right-side drawer) -------- */
 .ppd {
   position: fixed; top: 0; right: 0; bottom: 0;
-  width: min(440px, 100vw);
+  width: min(460px, 100vw);
+  max-width: 100vw;
   background: var(--bg-primary);
   border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
-  transform: translateX(105%);
-  transition: transform .28s cubic-bezier(.2,.7,.2,1);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1),
+              visibility 0s linear .3s;
   z-index: 100;
-  box-shadow: -20px 0 50px -20px rgba(0,0,0,.45);
+  box-shadow: -24px 0 60px -24px rgba(0,0,0,.5);
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  box-sizing: border-box;
+  contain: layout paint;
 }
-.ppd.is-open { transform: translateX(0); }
+.ppd.is-open {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1),
+              visibility 0s linear 0s;
+}
 
+/* -------------------------------- Header -------------------------------- */
 .ppd__top {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  background: linear-gradient(180deg,
+    color-mix(in oklab, var(--primary) 4%, var(--bg-primary)) 0%,
+    var(--bg-primary) 100%);
 }
-.ppd__title { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-primary); }
-.ppd__title i { color: var(--primary); font-size: 18px; }
+.ppd__title {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 600; color: var(--text-primary);
+  font-size: 15px;
+}
+.ppd__title i { color: var(--primary); font-size: 20px; }
 .ppd__close {
   background: var(--bg-secondary); border: 1px solid var(--border);
-  color: var(--text-secondary); width: 32px; height: 32px; border-radius: 8px;
-  display: grid; place-items: center; cursor: pointer; transition: .15s;
+  color: var(--text-secondary);
+  width: 36px; height: 36px; border-radius: 10px;
+  display: grid; place-items: center; cursor: pointer;
+  transition: all .18s ease;
+  font-size: 16px;
 }
-.ppd__close:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+.ppd__close:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  transform: rotate(90deg);
+}
 
-/* Sticky card area (does NOT scroll) */
+/* ------------------------- Sticky FUT card area ------------------------- */
 .ppd__sticky {
   flex-shrink: 0;
-  padding: 16px 16px 8px;
-  background: linear-gradient(180deg,
-    color-mix(in oklab, var(--primary) 6%, transparent) 0%,
-    transparent 100%);
+  padding: 18px 18px 10px;
+  background:
+    radial-gradient(120% 100% at 50% 0%,
+      color-mix(in oklab, var(--primary) 10%, transparent) 0%,
+      transparent 70%);
 }
 
 .ppd__scroll {
   flex: 1; min-height: 0;
   overflow-y: auto;
-  padding: 8px 16px 24px;
+  overflow-x: hidden;
+  padding: 8px 18px 28px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.ppd__scroll::-webkit-scrollbar { width: 6px; }
+.ppd__scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--text-muted) 30%, transparent);
+  border-radius: 6px;
 }
 
 .ppd__loading {
-  display: flex; align-items: center; gap: 8px;
-  color: var(--text-secondary); padding: 24px 0;
+  display: flex; align-items: center; gap: 10px;
+  color: var(--text-secondary); padding: 28px 0;
+  font-size: 14px;
 }
 .spin { animation: ppd-spin 1s linear infinite; }
 @keyframes ppd-spin { to { transform: rotate(360deg); } }
 
-/* -------------------------------- FUT card -------------------------------- */
+/* ================================ FUT card =============================== */
 .fut {
   width: 100%;
   display: flex; justify-content: center;
 }
 .fut__frame {
   position: relative;
-  width: 100%; max-width: 280px;
+  width: 100%;
+  max-width: 280px;
   aspect-ratio: 3 / 4.2;
-  border-radius: 18px;
-  padding: 14px 14px 12px;
+  border-radius: 20px;
+  padding: 16px 16px 14px;
   background:
-    radial-gradient(circle at 30% 20%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 55%),
+    radial-gradient(circle at 30% 20%,
+      color-mix(in oklab, var(--primary) 28%, transparent), transparent 55%),
     linear-gradient(160deg, #0d2b22 0%, #07120f 55%, #050a08 100%);
-  border: 2px solid color-mix(in oklab, var(--primary) 55%, #66f0c0 20%);
+  border: 2px solid color-mix(in oklab, var(--primary) 60%, #66f0c0 25%);
   box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent),
-    0 20px 50px -20px color-mix(in oklab, var(--primary) 40%, transparent);
+    inset 0 0 0 1px color-mix(in oklab, #ffffff 8%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent),
+    0 24px 60px -22px color-mix(in oklab, var(--primary) 50%, transparent);
   color: #eafff7;
   overflow: hidden;
+  display: flex; flex-direction: column;
 }
 .fut__shine {
   position: absolute; inset: 0;
-  background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.08) 50%, transparent 60%);
+  background: linear-gradient(115deg,
+    transparent 38%, rgba(255,255,255,.10) 50%, transparent 62%);
   pointer-events: none;
 }
+
 .fut__top {
-  display: grid; grid-template-columns: auto 1fr;
-  gap: 10px; align-items: start;
-  min-height: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: stretch;
+  flex: 1; min-height: 0;
 }
 .fut__avg {
   display: flex; flex-direction: column; align-items: flex-start;
   line-height: 1;
+  padding-top: 4px;
 }
 .fut__avg-lbl {
-  font-size: 11px; letter-spacing: 1.5px; opacity: .85;
+  font-size: 11px; letter-spacing: 1.6px; opacity: .85;
   font-weight: 600;
 }
 .fut__avg-num {
-  font-size: 44px; font-weight: 800; margin-top: 2px;
-  text-shadow: 0 2px 14px color-mix(in oklab, var(--primary) 40%, transparent);
+  font-size: clamp(36px, 11vw, 46px);
+  font-weight: 800; margin-top: 4px;
+  text-shadow: 0 2px 14px color-mix(in oklab, var(--primary) 45%, transparent);
 }
+
 .fut__photo {
   position: relative;
-  height: 140px;
-  border-radius: 10px;
+  width: 100%;
+  min-height: 0;
+  border-radius: 12px;
   overflow: hidden;
-  background: color-mix(in oklab, var(--primary) 10%, #061a13);
-  display: grid; place-items: end center;
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklab, var(--primary) 18%, transparent),
+      color-mix(in oklab, var(--primary) 6%, #061a13));
 }
 .fut__photo img {
   width: 100%; height: 100%;
-  object-fit: cover; object-position: center top;
+  object-fit: cover;
+  object-position: center 18%;
   display: block;
 }
 .fut__photo-ph {
   width: 100%; height: 100%;
   display: grid; place-items: center;
-  font-size: 38px; font-weight: 700;
+  font-size: clamp(28px, 9vw, 42px);
+  font-weight: 800;
+  letter-spacing: 1px;
   color: color-mix(in oklab, var(--primary) 80%, white);
   background: linear-gradient(180deg,
-    color-mix(in oklab, var(--primary) 25%, transparent),
+    color-mix(in oklab, var(--primary) 30%, transparent),
     transparent);
 }
 
 .fut__name {
   margin-top: 10px; text-align: center;
-  font-size: 15px; font-weight: 700; letter-spacing: .3px;
+  font-size: clamp(13px, 3.6vw, 15px);
+  font-weight: 700; letter-spacing: .3px;
   border-top: 1px solid color-mix(in oklab, var(--primary) 35%, transparent);
   padding-top: 8px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -138,69 +205,113 @@
   padding-top: 6px;
   border-top: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
 }
-.fut__stat { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; }
-.fut__stat-lbl { font-size: 10px; opacity: .8; letter-spacing: 1px; font-weight: 600; }
-.fut__stat-v { font-size: 18px; font-weight: 800; line-height: 1.1; margin-top: 2px; }
-.fut__sep { width: 1px; height: 26px; background: color-mix(in oklab, var(--primary) 30%, transparent); }
+.fut__stat {
+  display: flex; flex-direction: column; align-items: center;
+  flex: 1; min-width: 0;
+}
+.fut__stat-lbl {
+  font-size: 10px; opacity: .8; letter-spacing: 1px; font-weight: 600;
+}
+.fut__stat-v {
+  font-size: clamp(15px, 4.6vw, 19px);
+  font-weight: 800; line-height: 1.1; margin-top: 2px;
+}
+.fut__sep {
+  width: 1px; height: 26px;
+  background: color-mix(in oklab, var(--primary) 30%, transparent);
+}
 .fut__pos {
   text-align: center; margin-top: 8px;
-  font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  font-size: 12px; font-weight: 700; letter-spacing: 2px;
   color: #d7fff0;
 }
 
-/* -------------------------------- Sections -------------------------------- */
-.ppd-section { margin-top: 18px; }
+/* ================================ Sections =============================== */
+.ppd-section { margin-top: 20px; }
 .ppd-h4 {
   display: flex; align-items: center; gap: 8px;
-  font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
-  color: var(--text-secondary); margin: 0 0 10px;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px;
+  color: var(--text-secondary); margin: 0 0 12px;
+  font-weight: 700;
 }
-.ppd-h4 i { color: var(--primary); }
+.ppd-h4 i { color: var(--primary); font-size: 15px; }
 .ppd-count {
   margin-left: auto; background: var(--bg-secondary);
   border: 1px solid var(--border); border-radius: 999px;
-  padding: 2px 8px; font-size: 11px; color: var(--text-primary);
+  padding: 2px 9px; font-size: 11px; color: var(--text-primary);
+  font-weight: 600;
 }
 .ppd-empty {
   font-size: 13px; color: var(--text-muted);
-  padding: 12px; border: 1px dashed var(--border);
-  border-radius: 10px; text-align: center;
+  padding: 14px; border: 1px dashed var(--border);
+  border-radius: 12px; text-align: center;
 }
+
 .ppd-stats {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 .ppd-stat {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 8px; text-align: center;
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+  transition: transform .15s ease, border-color .15s ease;
+  min-width: 0;
+}
+.ppd-stat:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
 }
 .ppd-stat.is-hl {
-  background: color-mix(in oklab, var(--primary) 12%, var(--bg-secondary));
-  border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+  background: color-mix(in oklab, var(--primary) 14%, var(--bg-secondary));
+  border-color: color-mix(in oklab, var(--primary) 50%, var(--border));
+  box-shadow: 0 6px 22px -12px color-mix(in oklab, var(--primary) 60%, transparent);
 }
-.ppd-stat i { color: var(--primary); font-size: 16px; }
-.ppd-stat__v { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-top: 2px; }
-.ppd-stat__l { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.ppd-stat i { color: var(--primary); font-size: 17px; }
+.ppd-stat__v {
+  font-size: 18px; font-weight: 800;
+  color: var(--text-primary); margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+.ppd-stat__l {
+  font-size: 11px; color: var(--text-muted); margin-top: 2px;
+}
 
-.ppd-awards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+/* Awards */
+.ppd-awards {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
 .ppd-awards li {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: 8px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
   background: var(--bg-secondary); border: 1px solid var(--border);
   font-size: 13px; color: var(--text-primary);
+  min-width: 0;
 }
-.ppd-awards li i { color: var(--warning); }
+.ppd-awards li > span:not(.ppd-awards__wk) {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ppd-awards li i { color: var(--warning); font-size: 16px; flex-shrink: 0; }
 .ppd-awards__wk {
-  margin-left: auto; font-size: 11px; color: var(--text-muted);
-  background: var(--bg-primary); padding: 2px 6px; border-radius: 6px;
+  margin-left: auto; flex-shrink: 0;
+  font-size: 11px; color: var(--text-muted);
+  background: var(--bg-primary); padding: 3px 8px; border-radius: 6px;
   border: 1px solid var(--border);
+  font-weight: 600;
 }
 
-/* -------------------------------- Chart -------------------------------- */
-.ppd-chart { display: flex; flex-direction: column; gap: 5px; }
-.ppd-chart__row { display: flex; align-items: center; gap: 8px; }
+/* ================================ Chart ================================== */
+.ppd-chart { display: flex; flex-direction: column; gap: 6px; }
+.ppd-chart__row { display: flex; align-items: center; gap: 10px; }
 .ppd-chart__bar-wrap {
-  flex: 1; height: 12px; border-radius: 6px;
+  flex: 1; min-width: 0;
+  height: 12px; border-radius: 6px;
   background: var(--bg-secondary); overflow: hidden;
   border: 1px solid var(--border);
 }
@@ -210,21 +321,25 @@
     color-mix(in oklab, var(--text-secondary) 25%, transparent),
     color-mix(in oklab, var(--text-secondary) 55%, transparent));
   border-radius: 6px;
-  transition: width .35s ease;
+  transition: width .4s ease;
 }
 .ppd-chart__bar.is-me {
-  background: linear-gradient(90deg, var(--primary), color-mix(in oklab, var(--primary) 60%, #fff));
-  box-shadow: 0 0 14px color-mix(in oklab, var(--primary) 45%, transparent);
+  background: linear-gradient(90deg,
+    var(--primary),
+    color-mix(in oklab, var(--primary) 60%, #fff));
+  box-shadow: 0 0 14px color-mix(in oklab, var(--primary) 50%, transparent);
 }
 .ppd-chart__v {
-  width: 36px; text-align: right;
+  width: 36px; flex-shrink: 0;
+  text-align: right;
   font-size: 12px; font-weight: 700; color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 .ppd-chart__legend {
-  margin-top: 10px;
+  margin-top: 12px;
   display: flex; align-items: center; gap: 6px;
   font-size: 11px; color: var(--text-muted);
+  flex-wrap: wrap;
 }
 .ppd-chart__dot {
   width: 10px; height: 10px; border-radius: 3px;
@@ -233,106 +348,110 @@
 }
 .ppd-chart__dot.is-me { background: var(--primary); }
 
-/* Clickable rows */
 .row-clickable { cursor: pointer; transition: background .15s; }
-.row-clickable:hover { background: color-mix(in oklab, var(--primary) 8%, transparent); }
-
-@media (max-width: 480px) {
-  .ppd { width: 100vw; }
-  .fut__frame { max-width: 240px; }
-  .fut__avg-num { font-size: 38px; }
-  .fut__photo { height: 120px; }
+.row-clickable:hover {
+  background: color-mix(in oklab, var(--primary) 8%, transparent);
 }
 
-/* ── Mobile responsiveness improvements ── */
-@media (max-width: 600px) {
+/* ============================================================
+   MOBILE (<=640px) — Bottom sheet
+   - Slides from BOTTOM, not from the right (no horizontal overflow)
+   - Rounded top corners + drag handle look
+   - Card laid out side-by-side compactly to leave room for stats
+   ============================================================ */
+@media (max-width: 640px) {
   .ppd {
+    top: auto;
+    left: 0; right: 0; bottom: 0;
     width: 100vw;
+    max-width: 100vw;
+    height: 92dvh;
+    max-height: 92dvh;
     border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+    box-shadow: 0 -20px 50px -20px rgba(0,0,0,.55);
+    /* Make sure nothing on the page can shrink the sheet */
+    margin: 0;
+  }
+  .ppd.is-open { transform: translateY(0); }
+
+  /* Overlay must also cover the full viewport on mobile */
+  .ppd-overlay { width: 100vw; height: 100dvh; }
+
+  /* Drag-handle indicator above the header */
+  .ppd::before {
+    content: "";
+    position: absolute;
+    top: 8px; left: 50%;
+    width: 42px; height: 4px;
+    border-radius: 99px;
+    background: color-mix(in oklab, var(--text-muted) 45%, transparent);
+    transform: translateX(-50%);
+    z-index: 2;
   }
 
   .ppd__top {
-    padding: 12px 14px;
+    padding: 18px max(16px, env(safe-area-inset-right))
+             12px max(16px, env(safe-area-inset-left));
   }
+  .ppd__title { font-size: 14px; }
+  .ppd__title i { font-size: 18px; }
+  .ppd__close { width: 34px; height: 34px; border-radius: 9px; }
+  .ppd__close:hover { transform: none; } /* avoid rotate jank on touch */
 
   .ppd__sticky {
-    padding: 12px 12px 6px;
+    padding: 12px max(16px, env(safe-area-inset-right))
+             10px max(16px, env(safe-area-inset-left));
   }
-
   .ppd__scroll {
-    padding: 6px 12px 20px;
+    padding: 6px max(16px, env(safe-area-inset-right))
+             24px max(16px, env(safe-area-inset-left));
   }
 
-  /* Shrink the FUT card on mobile */
+  /* Compact FUT card: smaller + breathing room on both sides */
   .fut__frame {
-    max-width: 200px;
-    padding: 10px 10px 10px;
-    border-radius: 14px;
+    max-width: 240px;
+    padding: 12px 12px 10px;
+    border-radius: 16px;
+    aspect-ratio: 3 / 4.2;
   }
+  .fut__top { gap: 10px; }
+  .fut__avg-lbl { font-size: 10px; letter-spacing: 1.4px; }
+  .fut__avg-num { font-size: clamp(30px, 9vw, 40px); }
+  .fut__name { font-size: 13px; margin-top: 8px; padding-top: 6px; }
+  .fut__stats { margin-top: 6px; padding-top: 6px; }
+  .fut__stat-lbl { font-size: 9px; }
+  .fut__stat-v  { font-size: clamp(14px, 4.2vw, 17px); }
+  .fut__sep { height: 22px; }
+  .fut__pos { font-size: 11px; margin-top: 6px; letter-spacing: 1.6px; }
 
-  .fut__avg-num {
-    font-size: 32px;
-  }
-
-  .fut__photo {
-    height: 95px;
-  }
-
-  .fut__photo-ph {
-    font-size: 28px;
-  }
-
-  .fut__name {
-    font-size: 13px;
-    margin-top: 7px;
-    padding-top: 6px;
-  }
-
-  .fut__stat-lbl {
-    font-size: 9px;
-  }
-
-  .fut__stat-v {
-    font-size: 15px;
-  }
-
-  .fut__pos {
-    font-size: 11px;
-    margin-top: 6px;
-  }
-
-  /* Stats grid: 2 columns instead of 3 on small screens */
   .ppd-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
+  .ppd-stat { padding: 10px 6px; border-radius: 10px; }
+  .ppd-stat i { font-size: 15px; }
+  .ppd-stat__v { font-size: 16px; }
+  .ppd-stat__l { font-size: 10px; }
 
-  .ppd-stat {
-    padding: 8px 6px;
-  }
+  .ppd-h4 { font-size: 11px; margin-bottom: 10px; }
+  .ppd-section { margin-top: 18px; }
 
-  .ppd-stat i {
-    font-size: 14px;
-  }
+  .ppd-awards li { font-size: 12px; padding: 9px 10px; gap: 8px; }
+  .ppd-awards__wk { font-size: 10px; padding: 2px 6px; }
 
-  .ppd-stat__v {
-    font-size: 16px;
-  }
+  .ppd-chart__row { gap: 8px; }
+  .ppd-chart__v { width: 30px; font-size: 11px; }
+}
 
-  .ppd-stat__l {
-    font-size: 10px;
-  }
+/* Very small phones (<=360px): 2-col stat grid for breathing room */
+@media (max-width: 360px) {
+  .ppd__top    { padding-left: 12px; padding-right: 12px; }
+  .ppd__sticky { padding-left: 12px; padding-right: 12px; }
+  .ppd__scroll { padding-left: 12px; padding-right: 12px; }
 
-  .ppd-h4 {
-    font-size: 11px;
-  }
-
-  .ppd-section {
-    margin-top: 14px;
-  }
-
-  .ppd-awards li {
-    font-size: 12px;
-    padding: 6px 8px;
-  }
+  .ppd-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fut__frame { max-width: 210px; }
 }

@@ -1,9 +1,33 @@
-import React from "react";
+import React, { useMemo } from "react";
 import RatingRing from "./RatingRing";
 import SkillBar from "./SkillBar";
 import { ratingColor } from "../ratingColor";
 
+/**
+ * Standard competition ranking for top players.
+ * Ties are broken by rawAvg (unrounded) — higher rawAvg wins.
+ * If rawAvg is also equal, they share the same rank.
+ */
+function computeRanks(players) {
+  const ranks = new Array(players.length);
+  let lastRank = 0;
+  let lastAvg = null;
+  let lastRaw = null;
+  players.forEach((p, i) => {
+    const isDifferent = i === 0 || p.avg !== lastAvg || (p.rawAvg ?? p.avg) !== lastRaw;
+    if (isDifferent) {
+      lastRank = i + 1;
+      lastAvg = p.avg;
+      lastRaw = p.rawAvg ?? p.avg;
+    }
+    ranks[i] = lastRank;
+  });
+  return ranks;
+}
+
 export default function RatingsTable({ players, onSelect }) {
+  const ranks = useMemo(() => computeRanks(players), [players]);
+
   return (
     <div className="rt-wrap">
       <table className="tp-table">
@@ -20,7 +44,7 @@ export default function RatingsTable({ players, onSelect }) {
         </thead>
         <tbody>
           {players.map((p, i) => (
-            <RatingsRow key={p.id} player={p} index={i} onSelect={onSelect} />
+            <RatingsRow key={p.id} player={p} index={i} rank={ranks[i]} onSelect={onSelect} />
           ))}
         </tbody>
       </table>
@@ -28,16 +52,16 @@ export default function RatingsTable({ players, onSelect }) {
   );
 }
 
-function RatingsRow({ player: p, index: i, onSelect }) {
-  const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+function RatingsRow({ player: p, index: i, rank, onSelect }) {
+  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
   return (
     <tr
       className={`row-clickable ${p.me ? "me" : ""}`}
       onClick={() => onSelect?.(p)}
     >
       <td style={{ textAlign: "center" }}>
-        <div className={`rank-pill ${i < 3 ? "rank-top" : ""}`}>
-          {medal || i + 1}
+        <div className={`rank-pill ${rank <= 3 ? "rank-top" : ""}`}>
+          {medal || rank}
         </div>
       </td>
       <td>
@@ -64,3 +88,4 @@ function RatingsRow({ player: p, index: i, onSelect }) {
     </tr>
   );
 }
+

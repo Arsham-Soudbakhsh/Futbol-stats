@@ -84,23 +84,6 @@
 .rt-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .rt-wrap > table { width: 100%; }
 
-@media (max-width: 768px) {
-  .tga-grid { grid-template-columns: 1fr !important; }
-  .scoring-grid { grid-template-columns: repeat(2,1fr) !important; }
-  .points-page .rt-wrap > table { min-width: 480px; }
-}
-
-@media (max-width: 480px) {
-  .scoring-grid { grid-template-columns: 1fr !important; }
-  .points-page table th,
-  .points-page table td { padding: 6px 6px !important; font-size: 11px; }
-  .points-page .card-title { font-size: 13px; }
-  .tp-card .rt-wrap > table th,
-  .tp-card .rt-wrap > table td { padding: 6px 4px !important; }
-  .tga-card .rt-wrap > table th,
-  .tga-card .rt-wrap > table td { padding: 6px 6px !important; }
-}
-
 /* ═══════════════════ Captain page — premium UI ═══════════════════ */
 .cp-page { display: flex; flex-direction: column; gap: 14px; }
 

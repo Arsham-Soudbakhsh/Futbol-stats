@@ -40,7 +40,7 @@ export default function PointsPage() {
 
   return (
     <div className="page fade-up points-page">
-      <div className="card">
+      <div className="card points-card">
         <div className="pts-header">
           <div className="card-title" style={{ margin: 0 }}>
             <i className="ti ti-award" />

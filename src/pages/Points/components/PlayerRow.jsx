@@ -1,16 +1,20 @@
 import React from "react";
 import PosBadge from "../../../components/common/PosBadge";
 
-export default function PlayerRow({ row, index, maxPts, onSelect }) {
-  const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : null;
+export default function PlayerRow({ row, index, rank, maxPts, onSelect }) {
+  // Fall back to positional index if rank was not supplied (backwards compat).
+  const displayRank = rank ?? index + 1;
+  const medal =
+    displayRank === 1 ? "🥇" : displayRank === 2 ? "🥈" : displayRank === 3 ? "🥉" : null;
+
   return (
     <tr
       className={`row-clickable ${row.me ? "me" : ""}`}
       onClick={() => onSelect?.(row)}
     >
       <td>
-        <div className={`rank-pill ${index < 3 ? "rank-top" : ""}`}>
-          {medal || index + 1}
+        <div className={`rank-pill ${displayRank <= 3 ? "rank-top" : ""}`}>
+          {medal || displayRank}
         </div>
       </td>
       <td>

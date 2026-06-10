@@ -13,6 +13,7 @@ import {
   confirmTeamName,
   getWeekAccess,
   getCaptainTeamForWeek,
+  bustCache,
 } from "../../services";
 import "./Captain.css";
 
@@ -262,6 +263,7 @@ export default function CaptainPage() {
         );
       }
       setMsg("ok:Ratings saved!");
+      bustCache();
     } catch (e) {
       setMsg("err:" + e.message);
     }
