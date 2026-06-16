@@ -39,11 +39,14 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff,woff2}'],
+        // Never let the app-shell SW touch the FCM messaging worker —
+        // it has its own scope and must always be served fresh.
+        globIgnores: ['**/firebase-messaging-sw.js'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/firebase-messaging-sw\.js$/, /^\/firebase-cloud-messaging-push-scope/],
         runtimeCaching: [
           {
             // HTML navigations -> network first so new deploys show up

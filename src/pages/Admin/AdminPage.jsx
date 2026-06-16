@@ -8,6 +8,8 @@ import TeamStatsTab from "./components/TeamStatsTab";
 import AwardsTab from "./components/AwardsTab";
 import InvitesTab from "./components/InvitesTab";
 import TeamsManagementTab from "./components/TeamsManagementTab";
+import BroadcastTab from "./components/BroadcastTab";
+import "../../components/Notifications/Notifications.css";
 import "./Admin.css";
 
 /**
@@ -123,6 +125,10 @@ export default function AdminPage() {
           toggleWeekAccess={data.toggleWeekAccess}
           saving={saving}
         />
+      )}
+
+      {tab === "broadcast" && (
+        <BroadcastTab week={week} year={year} />
       )}
     </div>
   );

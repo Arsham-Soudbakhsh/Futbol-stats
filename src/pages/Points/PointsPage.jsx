@@ -5,7 +5,6 @@ import PlayerProfileDrawer from "../../components/common/PlayerProfileDrawer";
 import { WeekContext } from "../../components/layout/WeekContext";
 import { useAuthStore } from "../../store/authStore";
 import { usePointsData } from "./usePointsData";
-import { getAllPlayers } from "../../services";
 import LeaderboardTable from "./components/LeaderboardTable";
 import ScoringLegend from "./components/ScoringLegend";
 import EmptyState from "./components/EmptyState";
@@ -16,18 +15,15 @@ export default function PointsPage() {
   const { profile } = useAuthStore();
   const [mode, setMode] = useState("week");
   const [selected, setSelected] = useState(null);
-  const [playersIndex, setPlayersIndex] = React.useState({});
 
-  const { rows, loading, maxPts } = usePointsData({ week, year, profile, mode });
-
-  // Resolve to full player record (with avatar_url) when a row is clicked.
-  React.useEffect(() => {
-    getAllPlayers().then((all) => {
-      const map = {};
-      all.forEach((p) => (map[p.id] = p));
-      setPlayersIndex(map);
-    });
-  }, []);
+  // Single source: hook returns rows + playersIndex (with avatar_url).
+  // No more duplicate getAllPlayers() fetch in the page.
+  const { rows, loading, maxPts, playersIndex } = usePointsData({
+    week,
+    year,
+    profile,
+    mode,
+  });
 
   const handleSelect = (row) => {
     const full = playersIndex[row.id];

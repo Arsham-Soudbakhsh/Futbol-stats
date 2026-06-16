@@ -4,11 +4,9 @@ import { POSITIONS, POS_COLOR } from "../constants";
 import { avatarThumb } from "../../../lib/cloudinary";
 
 /**
- * Football pitch with the Best XI bubbles overlaid.
- * Click a filled slot to focus that player (handled by parent via `onSelect`).
- *
- * When a player has an `avatar_url` it replaces the colored initials bubble;
- * otherwise we fall back to the original initials + position-colored circle.
+ * Football pitch with the Squad of the Week bubbles overlaid.
+ * Click a filled slot to focus that player. Empty slots are inert
+ * (non-clickable cursor, no onClick) and surface a "needs data" hint.
  */
 export default function BestPitch({ bestXI, selected, onSelect }) {
   return (
@@ -16,16 +14,34 @@ export default function BestPitch({ bestXI, selected, onSelect }) {
       <FieldSVG />
       {POSITIONS.map((slot) => {
         const p = bestXI[slot.slot];
-        const isActive = selected?.id && p?.id === selected.id;
+        const isActive = !!(selected?.id && p?.id === selected.id);
         const hasPhoto = !!p?.avatar_url;
+        const filled = !!p;
+        const handleClick = filled
+          ? () => onSelect(selected?.id === p.id ? null : p)
+          : undefined;
         return (
           <div
             key={slot.slot}
-            className={`bt-slot${isActive ? " active" : ""}`}
-            style={{ left: slot.x + "%", top: slot.y + "%" }}
-            onClick={() => p && onSelect(selected?.id === p.id ? null : p)}
+            role={filled ? "button" : undefined}
+            tabIndex={filled ? 0 : undefined}
+            aria-label={filled ? `${p.full_name}, ${slot.pos}` : `${slot.pos} slot — needs data`}
+            className={`bt-slot${isActive ? " active" : ""}${filled ? "" : " bt-slot--empty"}`}
+            style={{
+              left: slot.x + "%",
+              top: slot.y + "%",
+              cursor: filled ? "pointer" : "default",
+            }}
+            onClick={handleClick}
+            onKeyDown={(e) => {
+              if (!filled) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleClick();
+              }
+            }}
           >
-            {p ? (
+            {filled ? (
               <>
                 {hasPhoto ? (
                   <div
@@ -51,12 +67,13 @@ export default function BestPitch({ bestXI, selected, onSelect }) {
               </>
             ) : (
               <>
-                <div className="bt-empty">
-                  <i className="ti ti-minus" />
+                <div className="bt-empty" title={`${slot.pos} — needs data`}>
+                  <i className="ti ti-minus" aria-hidden="true" />
                 </div>
-                <div className="bt-pos" style={{ color: "rgba(255,255,255,.45)" }}>
+                <div className="bt-pos" style={{ color: "rgba(255,255,255,.55)" }}>
                   {slot.pos}
                 </div>
+                <div className="bt-needs-data">needs data</div>
               </>
             )}
           </div>

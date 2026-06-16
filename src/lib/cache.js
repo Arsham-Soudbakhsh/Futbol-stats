@@ -50,6 +50,13 @@ export function invalidate(key) {
   store.delete(key);
 }
 
+/** Remove every cache entry whose key starts with `prefix`. */
+export function invalidatePrefix(prefix) {
+  for (const k of store.keys()) {
+    if (k.startsWith(prefix)) store.delete(k);
+  }
+}
+
 /** Remove all entries. */
 export function invalidateAll() {
   store.clear();

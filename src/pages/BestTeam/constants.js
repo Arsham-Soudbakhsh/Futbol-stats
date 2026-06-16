@@ -1,9 +1,16 @@
-// Slot layout (1-2-1-1) and per-position styling for the BestTeam pitch.
+// Best XI — slot layout (1-2-1-1: 1 GK, 1 DEF, 2 MID, 1 ST)
+// Position-specific metrics live in src/utils/positionMetrics.js:
+//   GK:  m1 Shot Stopping · m2 Positioning · m3 Distribution · m4 Communication
+//   DEF: m1 Defending · m2 Positioning · m3 Passing · m4 Decision Making
+//   MID: m1 Attacking · m2 Dribbling · m3 Passing · m4 Defensive Work Rate
+//   FWD: m1 Finishing · m2 Ball Holding · m3 Positioning · m4 Link-up
+// Each player's `ratings` object has m1..m4 and `overall`.
+
 export const POSITIONS = [
   { slot: "ST",   pos: "ST",  x: 50, y: 16 },
-  { slot: "MID",  pos: "MID", x: 50, y: 42 },
-  { slot: "DEF1", pos: "DEF", x: 30, y: 68 },
-  { slot: "DEF2", pos: "DEF", x: 70, y: 68 },
+  { slot: "MID1", pos: "MID", x: 30, y: 42 },
+  { slot: "MID2", pos: "MID", x: 70, y: 42 },
+  { slot: "DEF",  pos: "DEF", x: 50, y: 68 },
   { slot: "GK",   pos: "GK",  x: 50, y: 88 },
 ];
 
@@ -14,22 +21,19 @@ export const POS_COLOR = {
   GK:  "linear-gradient(135deg,#f39c12,#b9770e)",
 };
 
-// Per-position score formulas blending raw stats with averaged ratings.
+// Per-position Squad of the Week score formulas.
+// Final agreed formula: Overall (week avg rate) + raw stat bonuses.
+//   GK : Overall + Assists × 1  + CleanSheets × 10
+//   DEF: Overall + Goals   × 5  + Assists     × 4
+//   MID: Overall + Goals   × 8  + Assists     × 10
+//   ST : Overall + Goals   × 10 + Assists     × 7
 export const positionScore = {
-  GK:  (s, r) => (s.clean_sheets || 0) * 10 + (r.defending || 0) * 0.3,
-  DEF: (s, r) =>
-    (r.defending || 0) * 1.0 +
-    (s.clean_sheets || 0) * 4 +
-    (s.assists || 0) * 1.5,
-  MID: (s, r) =>
-    ((r.passing || 0) + (r.dribbling || 0)) * 0.5 +
-    (s.assists || 0) * 5 +
-    (s.goals || 0) * 2,
-  ST:  (s, r) =>
-    (r.shooting || 0) * 1.0 + (s.goals || 0) * 8 + (s.assists || 0) * 3,
+  GK:  (s, r) => (r.overall || 0) + (s.assists || 0) * 1  + (s.clean_sheets || 0) * 10,
+  DEF: (s, r) => (r.overall || 0) + (s.goals   || 0) * 5  + (s.assists      || 0) * 4,
+  MID: (s, r) => (r.overall || 0) + (s.goals   || 0) * 8  + (s.assists      || 0) * 10,
+  ST:  (s, r) => (r.overall || 0) + (s.goals   || 0) * 10 + (s.assists      || 0) * 7,
 };
 
-// Free-form position strings from Firebase normalised to GK / DEF / MID / ST.
 export function normalizePos(raw) {
   if (!raw) return null;
   const p = raw.toString().toLowerCase().trim();
@@ -42,15 +46,12 @@ export function normalizePos(raw) {
 
 export const TABS = ["ST", "MID", "DEF", "GK"];
 export const TAB_LABEL = {
-  ST: "Striker",
-  MID: "Midfielder",
-  DEF: "Defender",
-  GK: "Goalkeeper",
+  ST: "Striker", MID: "Midfielder", DEF: "Defender", GK: "Goalkeeper",
 };
 
 export const SCORE_FORMULA = {
-  GK: "Clean sheets × 10 + Defending rating × 0.3",
-  DEF: "Defending × 1.0 + Clean sheets × 4 + Assists × 1.5",
-  MID: "(Passing + Dribbling) × 0.5 + Assists × 5 + Goals × 2",
-  ST: "Shooting × 1.0 + Goals × 8 + Assists × 3",
+  GK:  "Overall + Assists × 1 + Clean Sheets × 10",
+  DEF: "Overall + Goals × 5 + Assists × 4",
+  MID: "Overall + Goals × 8 + Assists × 10",
+  ST:  "Overall + Goals × 10 + Assists × 7",
 };

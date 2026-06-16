@@ -15,14 +15,14 @@ export default function ConfirmModal({
   onCancel,
   tone = "warning", // "warning" | "success" | "danger" | "info"
 }) {
-  // Lock body scroll while open. Hooks must run unconditionally.
+  // Lock body scroll while open via <html> overflow. Compared to
+  // position:fixed on body this avoids the iOS visual jump.
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev || "auto";
-    };
+    const html = document.documentElement;
+    const prev = html.style.overflow;
+    html.style.overflow = "hidden";
+    return () => { html.style.overflow = prev; };
   }, [open]);
 
   // Keyboard shortcuts.

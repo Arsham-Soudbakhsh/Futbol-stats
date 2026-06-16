@@ -85,3 +85,35 @@
   font-variant-numeric: tabular-nums;
 }
 
+
+/* Scoring sections (stat / rating / awards) */
+.scoring-section { margin-bottom: 14px; }
+.scoring-section:last-child { margin-bottom: 0; }
+.scoring-section__title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-secondary);
+  margin: 4px 0 8px;
+}
+.scoring-section__title i { font-size: 13px; }
+
+/* Position-tiered stat row */
+.scoring-item--stat { flex-wrap: wrap; }
+.scoring-item__tiers {
+  display: inline-flex; gap: 6px; flex-wrap: wrap;
+}
+.scoring-tier {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 10px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.scoring-tier__pos {
+  color: var(--text-secondary);
+  font-size: 9px;
+  letter-spacing: .04em;
+}
+.scoring-tier__pts { font-size: 11px; }

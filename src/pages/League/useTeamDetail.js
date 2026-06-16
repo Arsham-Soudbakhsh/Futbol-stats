@@ -92,7 +92,7 @@ function aggregatePerPlayer({ players, stats, awards }) {
             goals: s.goals || 0,
             assists: s.assists || 0,
             clean_sheet: (s.clean_sheets || 0) > 0 || s.clean_sheet,
-          }),
+          }, p.position),
         0,
       );
       const awardPts = calcAwardPoints(

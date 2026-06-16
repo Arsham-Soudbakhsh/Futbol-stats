@@ -7,6 +7,7 @@ import {
   getAllPlayers,
 } from "../../services";
 import { avgRatings, AWARD_LABELS, calcStatPoints, calcAwardPoints } from "../../utils/points";
+import { getMetricsConfig, normalizePosition } from "../../utils/positionMetrics";
 import "./PlayerProfileDrawer.css";
 
 /**
@@ -14,11 +15,9 @@ import "./PlayerProfileDrawer.css";
  * - Desktop/tablet: slides from the right.
  * - Mobile (<=640px): bottom sheet (CSS handles this).
  *
- * Rendered via a React Portal to document.body so that no transformed /
- * filtered / contained ancestor can affect its `position: fixed` placement.
- * This fixes:
- *   1) drawer appearing below the fold instead of centered on screen
- *   2) drawer only taking up the parent's width on mobile (empty right side)
+ * The FUT card and supporting widgets read labels from the position-aware
+ * METRICS_BY_POSITION config so a striker shows Finishing / Ball Holding /
+ * Positioning / Link-up instead of generic Sho/Pas/Dri/Def.
  */
 export default function PlayerProfileDrawer({ player, open, onClose }) {
   const [data, setData] = useState(null);
@@ -46,7 +45,7 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // Lock body scroll while open (prevents background scrolling on mobile)
+  // Lock body scroll while open
   useEffect(() => {
     if (!open) return;
     const prevOverflow = document.body.style.overflow;
@@ -60,6 +59,9 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
     };
   }, [open]);
 
+  const posKey = normalizePosition(player?.position); // GK/DEF/MID/FWD
+  const metricsCfg = useMemo(() => getMetricsConfig(player?.position), [player?.position]);
+
   const summary = useMemo(() => {
     if (!data || !player) return null;
     const myStats = data.stats.filter((s) => s.player_id === player.id);
@@ -69,7 +71,7 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
     const matches = myStats.length;
 
     const myRatings = data.ratings.filter((r) => r.to_player_id === player.id && !r.absent);
-    const skills = avgRatings(myRatings);
+    const skills = avgRatings(myRatings, player.position);
 
     const myAwards = data.awards.filter((a) => {
       const ids = Array.isArray(a.player_ids) && a.player_ids.length
@@ -78,15 +80,15 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
       return ids.includes(player.id);
     });
 
-    const statPts = calcStatPoints({ goals, assists, clean_sheets });
+    const statPts = calcStatPoints({ goals, assists, clean_sheets }, player?.position);
     const awardPts = calcAwardPoints(myAwards);
     const totalPts = statPts + awardPts;
 
     const posMates = (data.players || [])
-      .filter((p) => p.position === player.position)
+      .filter((p) => normalizePosition(p.position) === posKey && posKey)
       .map((p) => {
         const rs = data.ratings.filter((r) => r.to_player_id === p.id && !r.absent);
-        const a = avgRatings(rs).avg || 0;
+        const a = avgRatings(rs, p.position).avg || 0;
         return { id: p.id, name: p.full_name, avg: a, me: p.id === player.id };
       })
       .sort((a, b) => b.avg - a.avg);
@@ -97,18 +99,27 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
       statPts, awardPts, totalPts,
       posMates,
     };
-  }, [data, player]);
+  }, [data, player, posKey]);
 
   const initials = (player?.full_name || "?")
     .split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
-  // SSR safety
   if (typeof document === "undefined") return null;
+
+  // Themed accent for the FUT card — uses the position color from the metrics
+  // config so the card visibly belongs to GK / DEF / MID / FWD.
+  const cardAccent = metricsCfg?.color || "var(--primary)";
 
   return createPortal(
     <>
       <div className={`ppd-overlay ${open ? "is-open" : ""}`} onClick={onClose} />
-      <aside className={`ppd ${open ? "is-open" : ""}`} role="dialog" aria-modal="true">
+      <aside
+        className={`ppd ${open ? "is-open" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        data-pos={posKey || "NONE"}
+        style={{ "--ppd-accent": cardAccent }}
+      >
         <header className="ppd__top">
           <div className="ppd__title">
             <i className="ti ti-user-circle" />
@@ -122,14 +133,12 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
         <div className="ppd__sticky">
           <FutCard
             name={player?.full_name}
-            position={player?.position}
+            position={posKey || player?.position}
             avatar={player?.avatar_url}
             initials={initials}
-            avg={summary?.skills.avg || 0}
-            sho={summary?.skills.shooting || 0}
-            pas={summary?.skills.passing || 0}
-            dri={summary?.skills.dribbling || 0}
-            def={summary?.skills.defending || 0}
+            avg={summary?.skills.overall || summary?.skills.avg || 0}
+            metricsCfg={metricsCfg}
+            metricValues={summary?.skills}
           />
         </div>
 
@@ -140,6 +149,11 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
 
           {summary && (
             <>
+              <section className="ppd-section">
+                <h4 className="ppd-h4"><i className="ti ti-activity" /> Attributes</h4>
+                <MetricsList cfg={metricsCfg} values={summary.skills} />
+              </section>
+
               <section className="ppd-section">
                 <h4 className="ppd-h4"><i className="ti ti-chart-pie" /> Season stats</h4>
                 <div className="ppd-stats">
@@ -175,7 +189,7 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
               <section className="ppd-section">
                 <h4 className="ppd-h4">
                   <i className="ti ti-chart-bar" />
-                  Performance vs {player?.position || "position"}
+                  Performance vs {posKey || player?.position || "position"}
                 </h4>
                 <PositionChart rows={summary.posMates} />
               </section>
@@ -189,15 +203,22 @@ export default function PlayerProfileDrawer({ player, open, onClose }) {
 }
 
 /* ------------------------------- FUT card ------------------------------- */
-function FutCard({ name, position, avatar, initials, avg, sho, pas, dri, def }) {
+/**
+ * The FUT card now reads its 4 stat labels from the position config so a
+ * striker shows Finishing / Ball Holding / Positioning / Link-up etc.
+ */
+function FutCard({ name, position, avatar, initials, avg, metricsCfg, metricValues }) {
+  const metrics = metricsCfg?.metrics || [];
   return (
     <div className="fut">
       <div className="fut__frame">
         <div className="fut__shine" />
+        <div className="fut__glow" />
         <div className="fut__top">
           <div className="fut__avg">
-            <span className="fut__avg-lbl">AVG</span>
             <span className="fut__avg-num">{avg || "--"}</span>
+            <span className="fut__avg-lbl">OVR</span>
+            {position && <span className="fut__avg-pos">{position}</span>}
           </div>
           <div className="fut__photo">
             {avatar ? (
@@ -210,27 +231,77 @@ function FutCard({ name, position, avatar, initials, avg, sho, pas, dri, def }) 
 
         <div className="fut__name">{name || "—"}</div>
 
-        <div className="fut__stats">
-          <FutStat lbl="Sho" v={sho} />
-          <span className="fut__sep" />
-          <FutStat lbl="Pas" v={pas} />
-          <span className="fut__sep" />
-          <FutStat lbl="Dri" v={dri} />
-          <span className="fut__sep" />
-          <FutStat lbl="Def" v={def} />
+        <div className="fut__stats fut__stats--grid">
+          {metrics.map((m) => (
+            <FutStat
+              key={m.key}
+              lbl={shortLabel(m.label)}
+              full={m.label}
+              v={metricValues?.[m.key] || 0}
+            />
+          ))}
         </div>
-
-        <div className="fut__pos">{position || "—"}</div>
       </div>
     </div>
   );
 }
 
-function FutStat({ lbl, v }) {
+/** Compress long metric labels (e.g. "Attacking Impact" → "ATK") for the
+ *  stat row inside the FUT card. */
+function shortLabel(label = "") {
+  const map = {
+    "Shot Stopping": "SHO",
+    "Positioning": "POS",
+    "Distribution": "DIS",
+    "Communication": "COM",
+    "Defending": "DEF",
+    "Passing": "PAS",
+    "Decision Making": "DEC",
+    "Attacking Impact": "ATK",
+    "Dribbling": "DRI",
+    "Defensive Work Rate": "DEF",
+    "Finishing": "FIN",
+    "Ball Holding": "HLD",
+    "Link-up Play": "LNK",
+  };
+  return map[label] || label.slice(0, 3).toUpperCase();
+}
+
+function FutStat({ lbl, full, v }) {
   return (
-    <div className="fut__stat">
-      <span className="fut__stat-lbl">{lbl}</span>
+    <div className="fut__stat" title={full}>
       <span className="fut__stat-v">{v || "--"}</span>
+      <span className="fut__stat-lbl">{lbl}</span>
+    </div>
+  );
+}
+
+/* --------------------------- Metrics list --------------------------- */
+function MetricsList({ cfg, values }) {
+  if (!cfg) return null;
+  return (
+    <div className="ppd-metrics">
+      {cfg.metrics.map((m) => {
+        const v = Number(values?.[m.key] || 0);
+        return (
+          <div className="ppd-metric" key={m.key}>
+            <div className="ppd-metric__head">
+              <i className={`ti ${m.icon}`} style={{ color: m.color }} />
+              <span className="ppd-metric__lbl">{m.label}</span>
+              <span className="ppd-metric__v">{v || 0}</span>
+            </div>
+            <div className="ppd-metric__bar">
+              <div
+                className="ppd-metric__fill"
+                style={{
+                  width: `${Math.max(0, Math.min(100, v))}%`,
+                  background: `linear-gradient(90deg, ${m.color}, color-mix(in oklab, ${m.color} 55%, transparent))`,
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -253,8 +324,11 @@ function PositionChart({ rows }) {
   const max = Math.max(100, ...rows.map((r) => r.avg));
   return (
     <div className="ppd-chart">
-      {rows.map((r, i) => (
-        <div key={r.id} className="ppd-chart__row">
+      {rows.map((r) => (
+        <div key={r.id} className={`ppd-chart__row ${r.me ? "is-me-row" : ""}`}>
+          <div className="ppd-chart__name" title={r.name}>
+            {r.me ? "★ " : ""}{r.name}
+          </div>
           <div className="ppd-chart__bar-wrap">
             <div
               className={`ppd-chart__bar ${r.me ? "is-me" : ""}`}
@@ -266,7 +340,7 @@ function PositionChart({ rows }) {
       ))}
       <div className="ppd-chart__legend">
         <span className="ppd-chart__dot is-me" /> You
-        <span className="ppd-chart__dot" style={{ marginLeft: 14 }} /> Other players ({rows[0]?.id ? rows.length : 0})
+        <span className="ppd-chart__dot" style={{ marginLeft: 14 }} /> Other players ({rows.length})
       </div>
     </div>
   );

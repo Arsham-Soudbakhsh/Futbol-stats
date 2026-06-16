@@ -20,7 +20,7 @@
 
   --text:              #0E1A12;
   --text-secondary:    #46554A;
-  --text-muted:        #7B8881;
+  --text-muted:        #5E6B63;
 
   --primary:           #1F7A4D;
   --primary-hover:     #186440;
@@ -36,6 +36,19 @@
   --warning:           #C99019;
   --danger:            #B83A3A;
   --info:              #3B82F6;
+
+  /* Position tokens (light) — used by PosBadge and CaptainPage pills.
+     Old hex values lived inline; centralising them lets dark mode and
+     future themes override per-position colors. */
+  --pos-gk:        #6B7B65;
+  --pos-gk-soft:   color-mix(in oklab, #6B7B65 14%, transparent);
+  --pos-def:       #1F7A4D;
+  --pos-def-soft:  color-mix(in oklab, #1F7A4D 14%, transparent);
+  --pos-mid:       #3B82F6;
+  --pos-mid-soft:  color-mix(in oklab, #3B82F6 14%, transparent);
+  --pos-fwd:       #B83A3A;
+  --pos-fwd-soft:  color-mix(in oklab, #B83A3A 14%, transparent);
+
 
   /* Light sidebar — soft sage panel with dark ink */
   --sidebar-bg:           #EAEFE2;
@@ -74,7 +87,7 @@
 
   --text:              #F2F6F0;
   --text-secondary:    #B3BFB5;
-  --text-muted:        #6F7C72;
+  --text-muted:        #9AA89E;
 
   --primary:           #34D399;
   --primary-hover:     #4FE2A8;
@@ -90,6 +103,16 @@
   --warning:           #E8C76A;
   --danger:            #F87171;
   --info:              #60A5FA;
+
+  /* Position tokens (dark theme overrides) */
+  --pos-gk:        #E8C76A;
+  --pos-gk-soft:   rgba(232,199,106,.14);
+  --pos-def:       #5E8C31;
+  --pos-def-soft:  rgba(94,140,49,.14);
+  --pos-mid:       #60A5FA;
+  --pos-mid-soft:  rgba(96,165,250,.14);
+  --pos-fwd:       #C95B5B;
+  --pos-fwd-soft:  rgba(201,91,91,.14);
 
   --sidebar-bg:           #07090A;
   --sidebar-surface:      #0F1411;
@@ -376,7 +399,22 @@ h1,h2,h3,h4 { font-family: 'Inter Tight', 'Inter', sans-serif; letter-spacing: -
   color: #fff;
   box-shadow: var(--shadow-glow);
 }
-.week-pill.future { opacity: .35; cursor: default; pointer-events: none; }
+.week-pill.future { opacity: .55; }
+.week-pill.future::after {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  vertical-align: middle;
+}
+.week-pill.active.future { opacity: 1; }
+.week-pill.active.future::after { background: rgba(255,255,255,.7); }
+.week-pill:focus-visible { outline: none; box-shadow: var(--ring); }
+.menu-btn:focus-visible,
+.topbar-icon-btn:focus-visible,
+.nav-item:focus-visible { outline: none; box-shadow: var(--ring); }
 
 .topbar-icon-btn {
   display: flex; align-items: center; justify-content: center;
@@ -961,14 +999,17 @@ body .tp-item.dark {
 
 /* Position badges in tables — softer */
 body .pos-badge {
-  width: 26px !important; height: 26px !important;
+  width: 30px !important; height: 20px !important;
   border-radius: 8px !important;
   font-family: 'Inter Tight', sans-serif;
   font-weight: 700 !important;
-  font-size: 11px !important;
+  font-size: 9px !important;
   background: var(--bg-secondary);
   color: var(--text-secondary);
   border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* "me" row highlight refinement */

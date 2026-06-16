@@ -8,8 +8,10 @@ import PositionRankings from "./components/PositionRankings";
 import "./BestTeam.css";
 
 /**
- * BestTeamPage — Best XI of the week + per-position ranking lists.
+ * BestTeamPage — Squad of the Week (5 picks) + per-position ranking lists.
  * The picker only considers players who declared each position.
+ *
+ * Formation: 1 GK · 1 DEF · 2 MID · 1 ST
  */
 export default function BestTeamPage() {
   const { week, year } = useContext(WeekContext);
@@ -25,6 +27,7 @@ export default function BestTeamPage() {
   React.useEffect(() => setSelected(null), [week, year]);
 
   const filledCount = Object.values(bestXI).filter(Boolean).length;
+  const totalSlots = 5;
 
   return (
     <div className="fade-up bt-page">
@@ -32,12 +35,21 @@ export default function BestTeamPage() {
         <div className="card" style={{ padding: 14 }}>
           <div className="card-title">
             <i className="ti ti-layout-board" />
-            Best XI
+            Squad of the Week
             <span className="badge">Week {week}</span>
+            {!loading && filledCount > 0 && filledCount < totalSlots && (
+              <span
+                className="badge"
+                style={{ background: "var(--warning)", color: "#fff", marginLeft: 6 }}
+                title="Some position slots are missing data"
+              >
+                {filledCount}/{totalSlots} filled
+              </span>
+            )}
           </div>
 
           {loading ? (
-            <PageLoader label="Building best XI" minHeight={200} />
+            <PageLoader label="Building Squad of the Week" minHeight={200} />
           ) : filledCount === 0 ? (
             <div className="bt-empty-state">
               <i

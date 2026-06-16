@@ -1,6 +1,22 @@
-/* Best XI page — extracted from the old inline <style> block in BestTeamPage.jsx
+/* Squad of the Week page — extracted from the old inline <style> block in BestTeamPage.jsx
    plus the page-specific selectors from pages.css. */
 @import "../../styles/pages/best-team.css";
+
+.bt-slot--empty { cursor: default !important; }
+.bt-slot--empty:hover { transform: translate(-50%, -50%); }
+.bt-needs-data {
+  font-size: 9px;
+  margin-top: 2px;
+  font-weight: 700;
+  color: rgba(255,255,255,.65);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  background: rgba(0,0,0,.35);
+  padding: 1px 6px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
 
 .bt-page { display: flex; flex-direction: column; gap: 14px; }
 

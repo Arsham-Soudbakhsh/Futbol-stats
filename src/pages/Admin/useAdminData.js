@@ -172,14 +172,24 @@ export function useAdminData({ week, year }) {
     setSaving(true);
     setMsg("");
     try {
-      for (const [pid, s] of Object.entries(statsForm)) {
-        await upsertStats(pid, week, year, {
-          goals: parseInt(s.goals) || 0,
-          assists: parseInt(s.assists) || 0,
-          clean_sheets: parseInt(s.clean_sheets) || 0,
-        });
+      // Parallel writes — 15 players = 1 round-trip wave instead of 15.
+      // settled, not all, so we don't end up in the "half saved" state
+      // where the first 8 succeed and a single failure aborts the loop.
+      const results = await Promise.allSettled(
+        Object.entries(statsForm).map(([pid, s]) =>
+          upsertStats(pid, week, year, {
+            goals: parseInt(s.goals) || 0,
+            assists: parseInt(s.assists) || 0,
+            clean_sheets: parseInt(s.clean_sheets) || 0,
+          })
+        )
+      );
+      const failed = results.filter((r) => r.status === "rejected");
+      if (failed.length) {
+        setMsg(`⚠️ Saved ${results.length - failed.length}/${results.length} — ${failed.length} failed.`);
+      } else {
+        setMsg("✅ Player stats saved!");
       }
-      setMsg("✅ Player stats saved!");
       bustCache();
     } catch (e) {
       setMsg("❌ " + e.message);
@@ -191,17 +201,24 @@ export function useAdminData({ week, year }) {
     setSaving(true);
     setMsg("");
     try {
-      for (const [tid, s] of Object.entries(teamForm)) {
-        await upsertTeamWeeklyStats(tid, week, year, {
-          played: parseInt(s.played) || 0,
-          wins: parseInt(s.wins) || 0,
-          draws: parseInt(s.draws) || 0,
-          losses: parseInt(s.losses) || 0,
-          goals_for: parseInt(s.goals_for) || 0,
-          goals_against: parseInt(s.goals_against) || 0,
-        });
+      const results = await Promise.allSettled(
+        Object.entries(teamForm).map(([tid, s]) =>
+          upsertTeamWeeklyStats(tid, week, year, {
+            played: parseInt(s.played) || 0,
+            wins: parseInt(s.wins) || 0,
+            draws: parseInt(s.draws) || 0,
+            losses: parseInt(s.losses) || 0,
+            goals_for: parseInt(s.goals_for) || 0,
+            goals_against: parseInt(s.goals_against) || 0,
+          })
+        )
+      );
+      const failed = results.filter((r) => r.status === "rejected");
+      if (failed.length) {
+        setMsg(`⚠️ Saved ${results.length - failed.length}/${results.length} — ${failed.length} failed.`);
+      } else {
+        setMsg("✅ Team stats saved!");
       }
-      setMsg("✅ Team stats saved!");
     } catch (e) {
       setMsg("❌ " + e.message);
     }

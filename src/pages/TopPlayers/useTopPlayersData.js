@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { getAllRatings, getAllPlayers } from "../../services";
 import { avgRatingsStrict } from "../../utils/points";
+import { normalizePosition } from "../../utils/positionMetrics";
 
 /**
  * Loads players with their per-skill ratings for either the current
  * week or aggregated across the entire season.
+ *
+ * Each returned player has:
+ *   { ...player, m1..m4, overall (avg), rawAvg, me }
+ *   plus legacy aliases passing/shooting/defending/dribbling/avg for old code.
  */
 export function useTopPlayersData({ week, year, profile, mode }) {
   const [players, setPlayers] = useState([]);
@@ -23,9 +28,7 @@ export function useTopPlayersData({ week, year, profile, mode }) {
       setLoading(false);
     });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [week, year, profile, mode]);
 
   return { players, loading };
@@ -46,15 +49,15 @@ function buildPlayers({ ratings, allPlayers, profile, mode }) {
   const out =
     mode === "week"
       ? allPlayers.map((p) => {
-          const strict = avgRatingsStrict(byPlayer[p.id] || [], p.role === 'captain' ? 2 : 3);
-          const r =
-            strict || { passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0, rawAvg: 0 };
-          return { ...p, ...r, me: p.id === profile?.id };
+          const pos = normalizePosition(p.position);
+          const minRaters = p.role === "captain" ? 2 : 3;
+          const r = avgRatingsStrict(byPlayer[p.id] || [], minRaters, pos)
+            || { m1: 0, m2: 0, m3: 0, m4: 0, passing: 0, shooting: 0, defending: 0, dribbling: 0, avg: 0, rawAvg: 0, overall: 0 };
+          return { ...p, ...r, position_normalized: pos, me: p.id === profile?.id };
         })
       : allPlayers.map((p) => buildSeasonRow(p, byPlayer[p.id] || [], profile));
 
   out.sort((a, b) => {
-    // Sort by rounded avg first, then by rawAvg for tie-breaking
     if (b.avg !== a.avg) return b.avg - a.avg;
     return (b.rawAvg ?? b.avg) - (a.rawAvg ?? a.avg);
   });
@@ -62,46 +65,37 @@ function buildPlayers({ ratings, allPlayers, profile, mode }) {
 }
 
 function buildSeasonRow(p, playerRatings, profile) {
-  // Group ratings per week, only keep weeks with strict (3-rater) coverage.
+  const pos = normalizePosition(p.position);
+  const minRaters = p.role === "captain" ? 2 : 3;
+
   const byWeek = {};
   playerRatings.forEach((r) => {
     const key = `${r.week_number}_${r.year}`;
-    if (!byWeek[key]) byWeek[key] = [];
-    byWeek[key].push(r);
+    (byWeek[key] ||= []).push(r);
   });
-  const requiredCount = p.role === 'captain' ? 2 : 3;
   const weeklyAverages = Object.values(byWeek)
-    .map((arr) => avgRatingsStrict(arr, requiredCount))
+    .map((arr) => avgRatingsStrict(arr, minRaters, pos))
     .filter(Boolean);
 
   if (!weeklyAverages.length) {
     return {
-      ...p,
-      passing: 0,
-      shooting: 0,
-      defending: 0,
-      dribbling: 0,
-      avg: 0,
+      ...p, position_normalized: pos,
+      m1: 0, m2: 0, m3: 0, m4: 0,
+      passing: 0, shooting: 0, defending: 0, dribbling: 0,
+      avg: 0, overall: 0, rawAvg: 0,
       me: p.id === profile?.id,
     };
   }
-  const avg = (key) =>
-    Math.round(weeklyAverages.reduce((s, w) => s + w[key], 0) / weeklyAverages.length);
-  const rawAvgOf = (key) =>
-    weeklyAverages.reduce((s, w) => s + w[key], 0) / weeklyAverages.length;
-  const passing = avg("passing");
-  const shooting = avg("shooting");
-  const defending = avg("defending");
-  const dribbling = avg("dribbling");
-  const rawAvg = (rawAvgOf("passing") + rawAvgOf("shooting") + rawAvgOf("defending") + rawAvgOf("dribbling")) / 4;
+  const n = weeklyAverages.length;
+  const avg = (key) => Math.round(weeklyAverages.reduce((s, w) => s + w[key], 0) / n);
+  const m1 = avg("m1"); const m2 = avg("m2"); const m3 = avg("m3"); const m4 = avg("m4");
+  const overall = Math.round((m1 + m2 + m3 + m4) / 4);
+  const rawAvg = weeklyAverages.reduce((s, w) => s + w.overall, 0) / n;
   return {
-    ...p,
-    passing,
-    shooting,
-    defending,
-    dribbling,
-    avg: Math.round((passing + shooting + defending + dribbling) / 4),
-    rawAvg,
+    ...p, position_normalized: pos,
+    m1, m2, m3, m4,
+    passing: m1, shooting: m2, defending: m3, dribbling: m4,
+    avg: overall, overall, rawAvg,
     me: p.id === profile?.id,
   };
 }

@@ -15,16 +15,26 @@ export default function Sidebar({ open, onClose, profile, isGuest, navItems, onS
         .join("")
         .toUpperCase()
         .slice(0, 2)
-    : "?";
+    : "";
 
   return (
     <>
-      {open && <div className="sidebar-overlay" onClick={onClose} />}
+      {open && (
+        <div
+          className="sidebar-overlay"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
-      <aside className={`sidebar${open ? " open" : ""}`}>
+      <aside
+        className={`sidebar${open ? " open" : ""}`}
+        aria-label="Primary navigation"
+        aria-hidden={!open && typeof window !== "undefined" && window.innerWidth <= 768 ? "true" : undefined}
+      >
         <div className="sidebar-brand">
           <div className="brand-row">
-            <div className="brand-icon">
+            <div className="brand-icon" aria-hidden="true">
               <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
                 <circle cx="8.5" cy="8.5" r="7" stroke="white" strokeWidth="1.5" />
                 <path
@@ -43,10 +53,12 @@ export default function Sidebar({ open, onClose, profile, isGuest, navItems, onS
                 <img
                   className="avatar-img avatar-img--photo"
                   src={avatarThumb(profile.avatar_url, 112)}
-                  alt={profile.full_name}
+                  alt={profile.full_name || "Profile"}
                 />
               ) : (
-                <div className="avatar-img">{initials}</div>
+                <div className="avatar-img" aria-hidden="true">
+                  {initials || <i className="ti ti-user" style={{ fontSize: 20 }} />}
+                </div>
               )}
             </div>
             <div className="profile-name">{profile?.full_name || "Player"}</div>
@@ -56,7 +68,7 @@ export default function Sidebar({ open, onClose, profile, isGuest, navItems, onS
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Sections">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -66,7 +78,7 @@ export default function Sidebar({ open, onClose, profile, isGuest, navItems, onS
                 "nav-item" + (isActive ? " active" : "")
               }
             >
-              <i className={`ti ${item.icon}`} />
+              <i className={`ti ${item.icon}`} aria-hidden="true" />
               {item.label}
             </NavLink>
           ))}
@@ -75,16 +87,17 @@ export default function Sidebar({ open, onClose, profile, isGuest, navItems, onS
         <div className="sidebar-footer">
           {isGuest && (
             <button
+              type="button"
               className="nav-item nav-item--guest"
               onClick={() => navigate("/auth")}
             >
-              <i className="ti ti-login" />
+              <i className="ti ti-login" aria-hidden="true" />
               Sign in
             </button>
           )}
 
-          <button className="nav-item" onClick={onSignOut}>
-            <i className="ti ti-logout" />
+          <button type="button" className="nav-item" onClick={onSignOut}>
+            <i className="ti ti-logout" aria-hidden="true" />
             {isGuest ? "Exit" : "Sign out"}
           </button>
         </div>

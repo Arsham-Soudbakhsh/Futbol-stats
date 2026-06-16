@@ -33,6 +33,7 @@ export default function LeaderboardTable({ rows, maxPts, onSelect }) {
             <th className="r">G</th>
             <th className="r">A</th>
             <th className="r">CS</th>
+            <th className="r" title="Rating bonus">RB</th>
             <th className="r">Aw</th>
             <th className="r">Total</th>
           </tr>

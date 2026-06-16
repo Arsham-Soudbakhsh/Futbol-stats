@@ -3,21 +3,15 @@ import CardTitle from "./CardTitle";
 import Gauge from "./Gauge";
 import KPI from "./KPI";
 import Radar from "./Radar";
-import PointsBreakdown from "./PointsBreakdown";
+import ComparisonRadar from "./ComparisonRadar";
 import TrendChart from "./TrendChart";
 import { Empty } from "./States";
 import { C } from "../constants";
 import { AWARD_LABELS } from "../../../utils/points";
-
-const SKILL_AXES = [
-  { k: "passing", name: "Passing", color: C.brand },
-  { k: "shooting", name: "Shooting", color: C.brand2 },
-  { k: "defending", name: "Defending", color: C.gold },
-  { k: "dribbling", name: "Dribbling", color: C.brand },
-];
+import { getMetricsConfig, normalizePosition } from "../../../utils/positionMetrics";
 
 /**
- * Week view: hero gauge + KPI tiles + radar/breakdown cards + season trend.
+ * Week view: hero gauge + KPI tiles + radar/comparison cards + season trend.
  */
 export default function WeekView({
   profile,
@@ -31,20 +25,36 @@ export default function WeekView({
   avgOverall,
   skillFill,
   season,
+  peers, // { peersAvg, peerCount, rank, groupSize, percentile }
 }) {
+  const position = normalizePosition(profile?.position) || "MID";
+  const cfg = getMetricsConfig(position);
+
+  const tier =
+    avgOverall >= 85 ? { label: "Elite", cls: "tier--elite", icon: "ti-crown" } :
+    avgOverall >= 75 ? { label: "Excellent", cls: "tier--good", icon: "ti-star" } :
+    avgOverall >= 65 ? { label: "Solid", cls: "tier--avg", icon: "ti-thumb-up" } :
+    avgOverall >= 50 ? { label: "Average", cls: "tier--low", icon: "ti-line" } :
+                       { label: "Building", cls: "tier--low", icon: "ti-seeding" };
+
   return (
     <>
       <section className="hp-hero card">
         <div className="hp-hero__gauge">
           <Gauge value={avgOverall} label="Overall" />
           <div className="hp-hero__chips">
+            <span className={`chip ${tier.cls}`}>
+              <i className={`ti ${tier.icon}`} /> {tier.label}
+            </span>
             <span className="chip chip--gold">
               <i className="ti ti-trophy" /> {totalPts} pts
             </span>
-            <span className="chip">
-              <i className="ti ti-ribbon" /> {awards.length} award
-              {awards.length === 1 ? "" : "s"}
-            </span>
+            {peers?.rank && peers.groupSize > 1 && (
+              <span className="chip chip--rank">
+                <i className="ti ti-chart-arrows" />
+                #{peers.rank} of {peers.groupSize} {position}
+              </span>
+            )}
           </div>
         </div>
         <div className="hp-kpis">
@@ -57,26 +67,29 @@ export default function WeekView({
 
       <section className="hp-grid">
         <div className="card hp-rad">
-          <CardTitle icon="ti-chart-radar" title="Performance radar" badge={`Week ${week}`} />
+          <CardTitle icon="ti-chart-radar"
+            title={`${position} performance radar`}
+            badge={`Week ${week}`} />
           {ratings && avgOverall > 0 ? (
             <div className="rad-wrap">
-              <Radar values={ratings} size={180} />
+              <Radar position={position} values={ratings} size={180} />
               <div className="rad-skills">
-                {SKILL_AXES.map((s) => (
-                  <div key={s.k} className="sk">
-                    <span className="sk__name">{s.name}</span>
-                    <div className="sk__track">
-                      <div
-                        className="sk__fill"
-                        style={{
-                          width: `${skillFill[s.k]}%`,
-                          background: s.color,
-                        }}
-                      />
+                {cfg.metrics.map((m) => {
+                  const v = ratings[m.key] ?? 0;
+                  const animated = skillFill[m.key] ?? v;
+                  return (
+                    <div key={m.key} className="sk" title={m.tip}>
+                      <span className="sk__name" style={{ color: m.color }}>
+                        <i className={`ti ${m.icon}`} /> {m.label}
+                      </span>
+                      <div className="sk__track">
+                        <div className="sk__fill"
+                          style={{ width: `${animated}%`, background: m.color }} />
+                      </div>
+                      <span className="sk__val">{v}</span>
                     </div>
-                    <span className="sk__val">{ratings[s.k]}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -84,40 +97,96 @@ export default function WeekView({
           )}
         </div>
 
-        <div className="card hp-pts">
-          <CardTitle icon="ti-chart-pie" title="Points breakdown" badge={`Week ${week}`} />
-          <PointsBreakdown
-            items={[
-              { label: "Goals", val: (stats?.goals || 0) * 10, color: C.brand },
-              { label: "Assists", val: (stats?.assists || 0) * 5, color: C.brand2 },
-              { label: "Clean sh.", val: stats?.clean_sheets || 0, color: "#7CC4A1" },
-              { label: "Awards", val: awardPts, color: C.gold },
-            ]}
-            total={totalPts}
-          />
-
-          <div className="hp-awards">
-            <div className="hp-awards__title">Awards</div>
-            {awards.length ? (
-              <div className="hp-awards__list">
-                {awards.map((a) => (
-                  <span key={a.id} className="aw">
-                    <i className="ti ti-star-filled" />
-                    {AWARD_LABELS[a.award_type] || a.award_type}
-                  </span>
-                ))}
+        <div className="card hp-cmp">
+          <CardTitle icon="ti-versus"
+            title={`You vs ${position} teammates`}
+            badge={peers?.peerCount ? `${peers.peerCount} peer${peers.peerCount === 1 ? "" : "s"}` : "Week"} />
+          {ratings && peers?.peersAvg ? (
+            <>
+              <div className="rad-wrap">
+                <ComparisonRadar
+                  position={position}
+                  you={ratings}
+                  peers={peers.peersAvg}
+                  size={200}
+                />
+                <div className="cmp-side">
+                  <div className="cmp-legend">
+                    <span className="cmp-legend__row">
+                      <span className="cmp-dot" style={{ background: cfg.color }} />
+                      <span>You</span>
+                      <strong>{ratings.overall ?? avgOverall}</strong>
+                    </span>
+                    <span className="cmp-legend__row">
+                      <span className="cmp-dot cmp-dot--dashed" />
+                      <span>Avg peers</span>
+                      <strong>{peers.peersAvg.overall}</strong>
+                    </span>
+                    {peers.percentile != null && (
+                      <div className="cmp-pct">
+                        <div className="cmp-pct__lbl">Position percentile</div>
+                        <div className="cmp-pct__val">
+                          {peers.percentile}<span>%</span>
+                        </div>
+                        <div className="cmp-pct__bar">
+                          <div className="cmp-pct__fill"
+                            style={{ width: `${peers.percentile}%` }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className="hp-awards__empty">No awards this week.</div>
-            )}
-          </div>
+
+              <div className="cmp-deltas">
+                {cfg.metrics.map((m) => {
+                  const y = ratings[m.key] ?? 0;
+                  const p = peers.peersAvg[m.key] ?? 0;
+                  const diff = y - p;
+                  const up = diff > 0;
+                  return (
+                    <div key={m.key} className="delta">
+                      <span className="delta__name" style={{ color: m.color }}>
+                        <i className={`ti ${m.icon}`} /> {m.label}
+                      </span>
+                      <span className={`delta__val ${up ? "delta--up" : diff < 0 ? "delta--down" : "delta--eq"}`}>
+                        <i className={`ti ${up ? "ti-arrow-up-right" : diff < 0 ? "ti-arrow-down-right" : "ti-equal"}`} />
+                        {diff > 0 ? `+${diff}` : diff}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <Empty icon="ti-users-group"
+              text={ratings
+                ? `No teammates rated yet at ${position} for week ${week}.`
+                : `Waiting for your week ${week} ratings.`} />
+          )}
         </div>
       </section>
 
-      {season?.trend && (
+      <section className="card hp-awcard">
+        <CardTitle icon="ti-trophy" title="Your awards" badge={`Week ${week}`} />
+        {awards.length === 0 ? (
+          <Empty icon="ti-confetti" text="No awards yet this week. Keep grinding." />
+        ) : (
+          <ul className="aw-grid">
+            {awards.map((a, i) => (
+              <li key={i} className="aw aw--lg">
+                <i className="ti ti-trophy" />
+                {AWARD_LABELS[a.award_type] || a.award_type}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {season?.trend?.length > 0 && (
         <section className="card">
-          <CardTitle icon="ti-trending-up" title="Points trend" badge={`${year} · 8 weeks`} />
-          <TrendChart data={season.trend} highlightWeek={week} />
+          <CardTitle icon="ti-trending-up" title="Season trend" badge={String(year)} />
+          <TrendChart data={season.trend} />
         </section>
       )}
     </>

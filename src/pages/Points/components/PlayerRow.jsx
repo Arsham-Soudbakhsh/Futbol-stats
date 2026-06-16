@@ -32,6 +32,7 @@ export default function PlayerRow({ row, index, rank, maxPts, onSelect }) {
       <td className="r"><span className={`stat-num ${row.goals ? "pos" : ""}`}>{row.goals}</span></td>
       <td className="r"><span className={`stat-num ${row.assists ? "neutral" : ""}`}>{row.assists}</span></td>
       <td className="r"><span className={`stat-num ${row.clean_sheets ? "ok" : ""}`}>{row.clean_sheets}</span></td>
+      <td className="r"><span className={`stat-num ${row.ratingBonus ? "pos" : ""}`}>{row.ratingBonus || 0}</span></td>
       <td className="r"><span className={`stat-num ${row.awardPts ? "warn" : ""}`}>{row.awardPts}</span></td>
       <td className="r"><span className="pts-total">{row.total}</span></td>
     </tr>

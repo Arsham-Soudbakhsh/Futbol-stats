@@ -11,7 +11,7 @@ import TopBar from "./TopBar";
 const BASE_NAV = [
   { to: "/", icon: "ti-home", label: "Home", end: true },
   { to: "/league", icon: "ti-trophy", label: "League" },
-  { to: "/best-team", icon: "ti-layout-board", label: "Best team" },
+  { to: "/best-team", icon: "ti-layout-board", label: "Squad of the Week" },
   { to: "/top-players", icon: "ti-star", label: "Top players" },
   { to: "/top-ga", icon: "ti-chart-bar", label: "Top G/A" },
   { to: "/points", icon: "ti-award", label: "Points" },
@@ -26,7 +26,18 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [week, setWeek] = useState(1);
+  // Persist the selected week across reloads. Fall back to 1 only when the
+  // user has never picked a week (e.g. very first visit).
+  const [week, setWeek] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const stored = window.localStorage.getItem("fs.selectedWeek");
+    const parsed = stored ? parseInt(stored, 10) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem("fs.selectedWeek", String(week)); }
+    catch { /* storage disabled */ }
+  }, [week]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggle } = useTheme();
   const isDark = theme === "dark";
@@ -40,6 +51,19 @@ export default function DashboardLayout() {
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
+
+  // a11y: close on Escape + lock body scroll while the mobile drawer is open.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") setSidebarOpen(false); };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [sidebarOpen]);
 
   const handleSignOut = async () => {
     if (!isGuest) await signOut();

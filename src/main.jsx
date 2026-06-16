@@ -1,6 +1,7 @@
 import React, { useEffect, lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "sonner";
 
 import "./index.css";
 import { useAuthStore } from "./store/authStore";
@@ -13,6 +14,7 @@ setupPWA();
 import AuthPage from "./pages/Auth";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import HomePage from "./pages/Home";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 // All other pages: load on demand (code-splitting)
 // Vite automatically creates separate JS chunks for each of these
@@ -44,6 +46,15 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Toaster
+        position="top-center"
+        richColors
+        closeButton
+        toastOptions={{
+          duration: 3500,
+          style: { fontFamily: "Inter, system-ui, sans-serif" },
+        }}
+      />
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
         <Route
@@ -69,4 +80,8 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);

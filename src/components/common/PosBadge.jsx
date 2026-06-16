@@ -1,27 +1,30 @@
 import React from "react";
 
 const POS_CONFIG = {
-  GK: { color: "var(--text-secondary)", bg: "var(--bg-secondary)" },
-  DEF: { color: "var(--primary)", bg: "var(--primary-soft)" },
+  GK: { color: "var(--pos-gk, var(--text-secondary))", bg: "var(--pos-gk-soft, var(--bg-secondary))" },
+  DEF: { color: "var(--pos-def, var(--primary))", bg: "var(--pos-def-soft, var(--primary-soft))" },
   MID: {
-    color: "var(--warning)",
-    bg: "color-mix(in oklab, var(--warning) 14%, transparent)",
+    color: "var(--pos-mid, var(--warning))",
+    bg: "var(--pos-mid-soft, color-mix(in oklab, var(--warning) 14%, transparent))",
   },
   FWD: {
-    color: "var(--danger)",
-    bg: "color-mix(in oklab, var(--danger) 14%, transparent)",
+    color: "var(--pos-fwd, var(--danger))",
+    bg: "var(--pos-fwd-soft, color-mix(in oklab, var(--danger) 14%, transparent))",
   },
 };
 
 /**
  * Small coloured pill that labels a player's position.
- * Used by Points, Captain and several other pages.
+ * When `pos` is empty, renders an invisible placeholder so callers
+ * keep a stable layout (no layout shift between rows).
  */
 export default function PosBadge({ pos, className = "" }) {
-  if (!pos) return null;
-  const c = POS_CONFIG[pos] || {};
+  const norm = (pos || "").toString().toUpperCase().slice(0, 3);
+  const isKnown = norm in POS_CONFIG;
+  const c = isKnown ? POS_CONFIG[norm] : { color: "transparent", bg: "transparent" };
   return (
     <span
+      aria-hidden={!isKnown}
       className={`pos-badge ${className}`.trim()}
       style={{
         fontSize: 9,
@@ -33,9 +36,12 @@ export default function PosBadge({ pos, className = "" }) {
         textTransform: "uppercase",
         letterSpacing: 0.4,
         flexShrink: 0,
+        visibility: isKnown ? "visible" : "hidden",
+        minWidth: 26,
+        textAlign: "center",
       }}
     >
-      {pos}
+      {isKnown ? norm : "—"}
     </span>
   );
 }
