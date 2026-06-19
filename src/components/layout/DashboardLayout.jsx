@@ -8,27 +8,31 @@ import { WeekContext } from "./WeekContext";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 
-const BASE_NAV = [
+// Nav items visible to everyone (guests included)
+const GUEST_NAV = [
+  { to: "/league",      icon: "ti-trophy",      label: "League" },
+  { to: "/best-team",   icon: "ti-layout-board", label: "Squad of the Week" },
+  { to: "/top-players", icon: "ti-star",         label: "Top Players" },
+  { to: "/top-ga",      icon: "ti-chart-bar",    label: "Top G/A" },
+  { to: "/hunt",        icon: "ti-crosshair",    label: "Hunt vs Hunter" },
+  { to: "/points",      icon: "ti-award",        label: "Points" },
+];
+
+// Extra nav items only for signed-in players
+const SIGNED_IN_NAV = [
   { to: "/", icon: "ti-home", label: "Home", end: true },
-  { to: "/league", icon: "ti-trophy", label: "League" },
-  { to: "/best-team", icon: "ti-layout-board", label: "Squad of the Week" },
-  { to: "/top-players", icon: "ti-star", label: "Top players" },
-  { to: "/top-ga", icon: "ti-chart-bar", label: "Top G/A" },
-  { to: "/hunt", icon: "ti-crosshair", label: "Hunt vs Hunter" },
-  { to: "/points", icon: "ti-award", label: "Points" },
+  ...GUEST_NAV,
 ];
 
 /**
- * DashboardLayout — sidebar + top bar shell that wraps every authenticated
- * page. Owns the selected week and exposes it to children via WeekContext.
+ * DashboardLayout — sidebar + top bar shell that wraps every page.
+ * Owns the selected week and exposes it to children via WeekContext.
  */
 export default function DashboardLayout() {
   const { profile, clear, isGuest } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Persist the selected week across reloads. Fall back to 1 only when the
-  // user has never picked a week (e.g. very first visit).
   const [week, setWeek] = useState(() => {
     if (typeof window === "undefined") return 1;
     const stored = window.localStorage.getItem("fs.selectedWeek");
@@ -39,21 +43,18 @@ export default function DashboardLayout() {
     try { window.localStorage.setItem("fs.selectedWeek", String(week)); }
     catch { /* storage disabled */ }
   }, [week]);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggle } = useTheme();
   const isDark = theme === "dark";
 
-  // Auto-close sidebar on route change and on resize past the tablet break.
   useEffect(() => setSidebarOpen(false), [location.pathname]);
   useEffect(() => {
-    const fn = () => {
-      if (window.innerWidth > 768) setSidebarOpen(false);
-    };
+    const fn = () => { if (window.innerWidth > 768) setSidebarOpen(false); };
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
 
-  // a11y: close on Escape + lock body scroll while the mobile drawer is open.
   useEffect(() => {
     if (!sidebarOpen) return;
     const onKey = (e) => { if (e.key === "Escape") setSidebarOpen(false); };
@@ -72,9 +73,11 @@ export default function DashboardLayout() {
     navigate("/auth");
   };
 
-  // Append role-specific nav items.
   const navItems = useMemo(() => {
-    const items = [...BASE_NAV];
+    // Guests only see the public pages — no Home, no Captain, no Admin
+    if (isGuest) return GUEST_NAV;
+
+    const items = [...SIGNED_IN_NAV];
     if (profile?.role === "captain") {
       items.push({ to: "/captain", icon: "ti-shield", label: "My squad" });
     }
@@ -82,7 +85,14 @@ export default function DashboardLayout() {
       items.push({ to: "/admin", icon: "ti-settings", label: "Admin panel" });
     }
     return items;
-  }, [profile?.role]);
+  }, [profile?.role, isGuest]);
+
+  // Redirect guest away from Home (personal dashboard) to League
+  useEffect(() => {
+    if (isGuest && location.pathname === "/") {
+      navigate("/league", { replace: true });
+    }
+  }, [isGuest, location.pathname, navigate]);
 
   const ctxValue = useMemo(
     () => ({ week, year: getCurrentYear() }),

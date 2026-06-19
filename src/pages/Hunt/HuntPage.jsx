@@ -1,18 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { WeekContext } from "../../components/layout/WeekContext";
 import { useAuthStore } from "../../store/authStore";
-import {
-  getAllPlayers,
-  getAllStats,
-  getAllAwards,
-  getAllRatings,
-} from "../../services";
-import {
-  calcStatPoints,
-  calcAwardPoints,
-  calcRatingBonus,
-  avgRatingsStrict,
-} from "../../utils/points";
+import { getAllPlayers } from "../../services/profiles.service";
 import {
   subscribeContractsForUser,
   subscribeHuntWeek,
@@ -27,13 +16,17 @@ import {
 import Loader from "../../components/common/Loader";
 import NewContractDialog from "./components/NewContractDialog";
 import ContractCard from "./components/ContractCard";
+import GuestHuntView from "./GuestHuntView";
 import "./Hunt.css";
 
 export default function HuntPage() {
   const { week, year } = useContext(WeekContext);
-  const { profile } = useAuthStore();
+  const { profile, isGuest } = useAuthStore();
+
+  // ── Guest sees the teaser, not the real page ──────────────────────────────
+  if (isGuest) return <GuestHuntView />;
+
   const [players, setPlayers] = useState([]);
-  const [pointsMap, setPointsMap] = useState({}); // { [playerId]: totalPts }
   const [contracts, setContracts] = useState(null);
   const [huntWeek, setHuntWeek] = useState(null);
   const [usedSlots, setUsedSlots] = useState(0);
@@ -42,20 +35,6 @@ export default function HuntPage() {
 
   useEffect(() => {
     getAllPlayers().then(setPlayers).catch(() => setPlayers([]));
-  }, []);
-
-  // Build season-total points map (mirrors Points page logic so the
-  // dialog can cap stakes by the opponent's available points).
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([getAllStats(), getAllAwards(), getAllRatings(), getAllPlayers()])
-      .then(([stats, awards, ratings, playersList]) => {
-        if (cancelled) return;
-        const map = buildTotalsMap({ stats, awards, ratings, players: playersList });
-        setPointsMap(map);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -78,7 +57,6 @@ export default function HuntPage() {
 
   const isOpen = !!huntWeek?.open;
   const left = Math.max(0, MAX_CONTRACTS_PER_WEEK - usedSlots);
-  const myTotal = Math.max(0, Math.floor(pointsMap[profile?.id] || 0));
 
   const send = async (data) => {
     setErr("");
@@ -92,7 +70,7 @@ export default function HuntPage() {
       });
       setOpenNew(false);
     } catch (e) {
-      setErr(e.message || "Failed to send challenge");
+      setErr(e.message || "خطا در ارسال");
     }
   };
 
@@ -118,40 +96,38 @@ export default function HuntPage() {
           <div className="hunt-hero__icon"><i className="ti ti-crosshair" /></div>
           <div className="hunt-hero__title">
             <h1>Hunt vs Hunter</h1>
-            <p>Weekly head-to-head challenges — winner takes points, loser pays.</p>
+            <p>چالش هفتگی بازیکنان روی آمار — برنده امتیاز می‌گیرد، بازنده از دست می‌دهد.</p>
           </div>
         </div>
 
         <div className="hunt-hero__meta">
           <div className="hunt-stat">
-            <span className="hunt-stat__label">Week status</span>
+            <span className="hunt-stat__label">وضعیت هفته</span>
             <span className="hunt-stat__value">
               <span className={`dot ${isOpen ? "ok" : "off"}`} />
-              {isOpen ? "Open" : "Closed"}
+              {isOpen ? "باز" : "بسته"}
             </span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">Week / Year</span>
+            <span className="hunt-stat__label">هفته / سال</span>
             <span className="hunt-stat__value">W{week} · {year}</span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">Slots left</span>
+            <span className="hunt-stat__label">فرصت باقی‌مانده</span>
             <span className="hunt-stat__value">{left}/{MAX_CONTRACTS_PER_WEEK}</span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">Active</span>
+            <span className="hunt-stat__label">فعال</span>
             <span className="hunt-stat__value">{active.length}</span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">Pending</span>
+            <span className="hunt-stat__label">در انتظار</span>
             <span className="hunt-stat__value">{pending.length}</span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">Net P/L</span>
+            <span className="hunt-stat__label">سود خالص</span>
             <span className="hunt-stat__value" style={{
-              color: totalEarnings > 0 ? "var(--hunt-win, #22c55e)"
-                  : totalEarnings < 0 ? "var(--hunt-lose, #ef4444)"
-                  : undefined
+              color: totalEarnings > 0 ? "#4ade80" : totalEarnings < 0 ? "#f87171" : undefined
             }}>
               {totalEarnings > 0 ? `+${totalEarnings}` : totalEarnings}
             </span>
@@ -163,17 +139,17 @@ export default function HuntPage() {
             className="btn btn--primary"
             disabled={!isOpen || left === 0}
             onClick={() => setOpenNew(true)}
-            title={!isOpen ? "Week is closed" : left === 0 ? "No slots left" : ""}
+            title={!isOpen ? "هفته بسته است" : left === 0 ? "فرصتی باقی نیست" : ""}
           >
-            <i className="ti ti-plus" /> New challenge
+            <i className="ti ti-plus" /> چالش جدید
           </button>
         </div>
 
         {err && <div className="hunt-err"><i className="ti ti-alert-triangle" /> {err}</div>}
       </header>
 
-      <Section title="Awaiting response" icon="ti-hourglass" count={pending.length}
-               empty="Nothing waiting right now">
+      <Section title="در انتظار پاسخ" icon="ti-hourglass" count={pending.length}
+               empty="در حال حاضر چیزی منتظر نیست">
         {pending.map((c) => (
           <ContractCard key={c.id} c={c} me={profile.id}
             onAccept={() => acceptContract(c.id, profile.id).catch((e) => setErr(e.message))}
@@ -184,19 +160,17 @@ export default function HuntPage() {
         ))}
       </Section>
 
-      <Section title="Active challenges" icon="ti-bolt" count={active.length} empty="No active challenge">
+      <Section title="چالش‌های فعال" icon="ti-bolt" count={active.length} empty="چالش فعالی نداری">
         {active.map((c) => <ContractCard key={c.id} c={c} me={profile.id} />)}
       </Section>
 
-      <Section title="History" icon="ti-history" count={history.length} empty="Nothing to show yet">
+      <Section title="تاریخچه" icon="ti-history" count={history.length} empty="چیزی برای نمایش نیست">
         {history.map((c) => <ContractCard key={c.id} c={c} me={profile.id} />)}
       </Section>
 
       {openNew && (
         <NewContractDialog
           me={profile}
-          myTotal={myTotal}
-          pointsMap={pointsMap}
           players={players.filter((p) => p.id !== profile.id)}
           onClose={() => setOpenNew(false)}
           onSubmit={send}
@@ -219,46 +193,4 @@ function Section({ title, icon, count, empty, children }) {
         : <div className="hunt-grid">{kids}</div>}
     </section>
   );
-}
-
-// Season-total points per player (stats + awards + rating bonus).
-// Hunt deltas are intentionally excluded so the stake budget reflects what
-// the player has *earned*, not their current swing from open contracts.
-function buildTotalsMap({ stats, awards, ratings, players }) {
-  const statsMap = {};
-  (stats || []).forEach((s) => {
-    if (!statsMap[s.player_id]) statsMap[s.player_id] = { goals: 0, assists: 0, clean_sheets: 0 };
-    statsMap[s.player_id].goals        += s.goals        || 0;
-    statsMap[s.player_id].assists      += s.assists      || 0;
-    statsMap[s.player_id].clean_sheets += s.clean_sheets || 0;
-  });
-  const awardsMap = {};
-  (awards || []).forEach((a) => {
-    const ids = Array.isArray(a.player_ids) && a.player_ids.length
-      ? a.player_ids
-      : a.player_id ? [a.player_id] : [];
-    ids.forEach((pid) => { (awardsMap[pid] ||= []).push(a); });
-  });
-  const ratingBonusMap = {};
-  const byPlayerWeek = {};
-  (ratings || []).forEach((r) => {
-    const key = `${r.to_player_id}__${r.week_number}`;
-    (byPlayerWeek[key] ||= []).push(r);
-  });
-  Object.entries(byPlayerWeek).forEach(([key, list]) => {
-    const [pid] = key.split("__");
-    const player = players.find((p) => p.id === pid);
-    const required = player?.role === "captain" ? 2 : 3;
-    const agg = avgRatingsStrict(list, required, player?.position);
-    if (!agg) return;
-    ratingBonusMap[pid] = (ratingBonusMap[pid] || 0) + calcRatingBonus(agg.overall);
-  });
-  const map = {};
-  players.forEach((p) => {
-    const statPts   = calcStatPoints(statsMap[p.id], p.position);
-    const awardPts  = calcAwardPoints(awardsMap[p.id] || []);
-    const ratingPts = ratingBonusMap[p.id] || 0;
-    map[p.id] = statPts + awardPts + ratingPts;
-  });
-  return map;
 }
