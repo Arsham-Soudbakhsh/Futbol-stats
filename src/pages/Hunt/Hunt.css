@@ -1,0 +1,655 @@
+/* ============================================================
+   Hunt vs Hunter — refined UI v2
+   - cohesive teal/violet palette (works in light & dark)
+   - tokenised so the same CSS reads well on either theme
+   - mobile-first, fully responsive
+   ============================================================ */
+
+.hunt-page {
+  /* Local design tokens. Overridable by the global theme. */
+  --hunt-accent:        var(--hunt-accent-color,        #6366f1); /* indigo-500 */
+  --hunt-accent-strong: var(--hunt-accent-strong-color, #4338ca); /* indigo-700 */
+  --hunt-accent-soft:   color-mix(in oklab, var(--hunt-accent) 18%, transparent);
+  --hunt-accent-ring:   color-mix(in oklab, var(--hunt-accent) 35%, transparent);
+
+  --hunt-hunter: #f59e0b;
+  --hunt-hunted: #14b8a6;
+  --hunt-win:    #16a34a;
+  --hunt-lose:   #dc2626;
+  --hunt-warn:   #f59e0b;
+
+  --hunt-surface:        var(--surface-1, rgba(255,255,255,.04));
+  --hunt-surface-strong: var(--surface-2, rgba(255,255,255,.07));
+  --hunt-surface-soft:   rgba(0, 0, 0, .04);
+  --hunt-border:         var(--border, rgba(127,127,127,.18));
+  --hunt-text:           var(--text-primary, inherit);
+  --hunt-text-muted:     var(--text-muted, color-mix(in oklab, currentColor 55%, transparent));
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 32px;
+  color: var(--hunt-text);
+}
+
+/* Adapt soft-surface fills for light theme automatically. */
+@media (prefers-color-scheme: light) {
+  .hunt-page {
+    --hunt-surface:        rgba(15, 23, 42, .03);
+    --hunt-surface-strong: rgba(15, 23, 42, .06);
+    --hunt-surface-soft:   rgba(15, 23, 42, .04);
+    --hunt-border:         rgba(15, 23, 42, .1);
+  }
+}
+/* Honour an explicit theme class if the app sets one. */
+:root[data-theme="light"] .hunt-page,
+:root.light .hunt-page,
+.theme-light .hunt-page {
+  --hunt-surface:        rgba(15, 23, 42, .03);
+  --hunt-surface-strong: rgba(15, 23, 42, .06);
+  --hunt-surface-soft:   rgba(15, 23, 42, .04);
+  --hunt-border:         rgba(15, 23, 42, .1);
+}
+
+/* ── Hero header ───────────────────────────────────────────── */
+.hunt-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 20px;
+  border-radius: 20px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--hunt-hunter) 22%, transparent), transparent 55%),
+    radial-gradient(120% 140% at 0% 100%, color-mix(in oklab, var(--hunt-accent) 28%, transparent), transparent 55%),
+    linear-gradient(135deg, var(--hunt-surface-strong), var(--hunt-surface));
+  border: 1px solid var(--hunt-border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.hunt-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(45deg, color-mix(in oklab, currentColor 6%, transparent) 0 1px, transparent 1px 22px);
+  pointer-events: none;
+  opacity: .35;
+}
+.hunt-hero__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+.hunt-hero__icon {
+  width: 44px; height: 44px;
+  flex: 0 0 44px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--hunt-hunter), #ef4444);
+  color: #fff;
+  font-size: 22px;
+  box-shadow: 0 8px 24px -8px color-mix(in oklab, var(--hunt-hunter) 70%, transparent);
+}
+.hunt-hero__title h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.hunt-hero__title p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--hunt-text-muted);
+}
+
+.hunt-hero__meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  position: relative;
+}
+.hunt-stat {
+  background: var(--hunt-surface);
+  border: 1px solid var(--hunt-border);
+  border-radius: 12px;
+  padding: 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hunt-stat__label {
+  font-size: 10.5px;
+  color: var(--hunt-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+.hunt-stat__value {
+  font-weight: 800;
+  font-size: 15px;
+  display: flex; align-items: center; gap: 6px;
+}
+.hunt-stat__value .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--hunt-text-muted);
+}
+.hunt-stat__value .dot.ok  { background: var(--hunt-win);  box-shadow: 0 0 0 4px color-mix(in oklab, var(--hunt-win) 22%, transparent); }
+.hunt-stat__value .dot.off { background: var(--hunt-lose); box-shadow: 0 0 0 4px color-mix(in oklab, var(--hunt-lose) 22%, transparent); }
+
+.hunt-hero__actions {
+  display: flex;
+  gap: 8px;
+  position: relative;
+}
+.hunt-hero__actions .btn { flex: 1; }
+
+.hunt-err {
+  position: relative;
+  background: color-mix(in oklab, var(--hunt-lose) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--hunt-lose) 45%, transparent);
+  color: var(--hunt-lose);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Sections ──────────────────────────────────────────────── */
+.hunt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hunt-section__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 0 4px;
+  color: var(--text-secondary, var(--hunt-text-muted));
+}
+.hunt-section__head .count {
+  margin-inline-start: auto;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--hunt-surface);
+  color: var(--hunt-text-muted);
+}
+.hunt-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--hunt-text-muted);
+  font-size: 13px;
+  border: 1px dashed var(--hunt-border);
+  border-radius: 14px;
+  background: var(--hunt-surface);
+}
+.hunt-empty i { display: block; font-size: 28px; margin-bottom: 8px; opacity: .55; }
+
+.hunt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+/* ── Contract card ─────────────────────────────────────────── */
+.hunt-card {
+  position: relative;
+  background: var(--hunt-surface);
+  border: 1px solid var(--hunt-border);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.hunt-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--hunt-accent) 45%, var(--hunt-border));
+  box-shadow: 0 12px 32px -18px color-mix(in oklab, var(--hunt-accent) 50%, transparent);
+}
+.hunt-card.status-pending   { border-color: color-mix(in oklab, var(--hunt-warn) 45%, var(--hunt-border)); }
+.hunt-card.status-accepted  { border-color: color-mix(in oklab, var(--hunt-accent) 55%, var(--hunt-border)); }
+.hunt-card.status-settled.win  { border-color: color-mix(in oklab, var(--hunt-win) 55%, var(--hunt-border)); }
+.hunt-card.status-settled.lose { border-color: color-mix(in oklab, var(--hunt-lose) 55%, var(--hunt-border)); }
+.hunt-card.status-rejected,
+.hunt-card.status-cancelled { opacity: .75; }
+
+.hunt-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+}
+.hunt-role-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--hunt-surface-strong);
+  border: 1px solid var(--hunt-border);
+  font-weight: 600; letter-spacing: .3px;
+}
+.hunt-role-pill.hunter {
+  color: var(--hunt-hunter);
+  border-color: color-mix(in oklab, var(--hunt-hunter) 45%, transparent);
+  background: color-mix(in oklab, var(--hunt-hunter) 14%, transparent);
+}
+.hunt-role-pill.hunted {
+  color: var(--hunt-hunted);
+  border-color: color-mix(in oklab, var(--hunt-hunted) 45%, transparent);
+  background: color-mix(in oklab, var(--hunt-hunted) 14%, transparent);
+}
+
+.hunt-status {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--hunt-surface-strong);
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+.hunt-status.pending   { color: var(--hunt-warn);   background: color-mix(in oklab, var(--hunt-warn) 14%, transparent); }
+.hunt-status.accepted  { color: var(--hunt-accent); background: color-mix(in oklab, var(--hunt-accent) 16%, transparent); }
+.hunt-status.settled   { color: var(--hunt-win);    background: color-mix(in oklab, var(--hunt-win) 16%, transparent); }
+.hunt-status.rejected,
+.hunt-status.cancelled { color: var(--hunt-text-muted); }
+
+/* VS layout */
+.hunt-vs {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.hunt-side {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  text-align: center;
+  min-width: 0;
+}
+.hunt-side.me .hunt-avatar { box-shadow: 0 0 0 2px var(--hunt-accent); }
+.hunt-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--hunt-surface-strong), var(--hunt-surface));
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 18px;
+  color: var(--hunt-text);
+  border: 1px solid var(--hunt-border);
+}
+.hunt-avatar.win  { background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; box-shadow: 0 0 0 2px color-mix(in oklab, var(--hunt-win) 45%, transparent); }
+.hunt-avatar.lose { background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; opacity: .85; }
+.hunt-side__name {
+  font-weight: 700; font-size: 13.5px; line-height: 1.2;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hunt-side__pos  { font-size: 11px; color: var(--hunt-text-muted); }
+.hunt-side__score {
+  font-size: 18px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--hunt-text);
+}
+.hunt-vs__center {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 60px;
+}
+.hunt-vs__label {
+  font-size: 10px; color: var(--hunt-text-muted);
+  text-transform: uppercase; letter-spacing: .8px;
+}
+.hunt-vs__metric {
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--hunt-surface-strong);
+  border: 1px solid var(--hunt-border);
+  font-size: 11.5px; font-weight: 700;
+  white-space: nowrap;
+}
+.hunt-vs__stake {
+  font-size: 22px; font-weight: 900;
+  background: linear-gradient(135deg, var(--hunt-accent), var(--hunt-hunter));
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.hunt-vs__stake .unit { font-size: 10px; color: var(--hunt-text-muted); margin-inline-start: 2px; font-weight: 600; -webkit-text-fill-color: var(--hunt-text-muted); }
+.hunt-vs__vs {
+  font-size: 11px; font-weight: 800;
+  color: var(--hunt-text-muted);
+  letter-spacing: 1px;
+}
+
+/* Result banner */
+.hunt-result {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.hunt-result.win  { background: color-mix(in oklab, var(--hunt-win) 16%, transparent);  color: var(--hunt-win); }
+.hunt-result.lose { background: color-mix(in oklab, var(--hunt-lose) 16%, transparent); color: var(--hunt-lose); }
+
+/* Actions */
+.hunt-card__actions {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  border-top: 1px dashed var(--hunt-border);
+  padding-top: 10px;
+}
+.hunt-card__actions .btn { flex: 1 1 auto; min-width: 0; }
+.hunt-await {
+  flex: 1;
+  font-size: 12px; color: var(--hunt-text-muted);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.hunt-await .pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--hunt-warn);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--hunt-warn) 60%, transparent);
+  animation: hunt-pulse 1.6s infinite;
+}
+@keyframes hunt-pulse {
+  0%   { box-shadow: 0 0 0 0   color-mix(in oklab, var(--hunt-warn) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 10px color-mix(in oklab, var(--hunt-warn) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0   color-mix(in oklab, var(--hunt-warn) 0%, transparent); }
+}
+
+.hunt-counter {
+  display: flex; gap: 6px; width: 100%;
+}
+.hunt-counter input {
+  flex: 1; min-width: 0;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--hunt-border);
+  background: var(--hunt-surface);
+  color: inherit;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.hunt-counter input:focus {
+  outline: none;
+  border-color: var(--hunt-accent);
+  box-shadow: 0 0 0 3px var(--hunt-accent-ring);
+}
+
+/* ── Modal ─────────────────────────────────────────────────── */
+.hunt-modal__overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px;
+  animation: hunt-fade .18s ease;
+}
+@keyframes hunt-fade { from { opacity: 0 } to { opacity: 1 } }
+.hunt-modal {
+  max-width: 520px; width: 100%;
+  max-height: 92vh;
+  overflow: auto;
+  border-radius: 20px;
+  animation: hunt-pop .22s cubic-bezier(.2,.8,.3,1);
+  background: var(--surface-bg, var(--bg, #0b1220));
+  border: 1px solid var(--hunt-border);
+  box-shadow: 0 30px 80px -30px rgba(0,0,0,.55);
+}
+@media (prefers-color-scheme: light) {
+  .hunt-modal { background: var(--surface-bg, #ffffff); }
+}
+@keyframes hunt-pop {
+  from { transform: translateY(12px) scale(.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+.hunt-modal__head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hunt-border);
+  position: sticky; top: 0;
+  background: inherit; z-index: 2;
+}
+.hunt-modal__head h3 { margin: 0; font-size: 16px; display: flex; gap: 8px; align-items: center; }
+.hunt-modal__body { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+.hunt-steps {
+  display: flex; gap: 6px; padding: 2px 0;
+}
+.hunt-steps__dot {
+  flex: 1; height: 4px; border-radius: 999px;
+  background: var(--hunt-surface-strong);
+}
+.hunt-steps__dot.on {
+  background: linear-gradient(90deg, var(--hunt-accent), var(--hunt-hunter));
+}
+
+.hunt-field {
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 13px;
+}
+.hunt-field > span { font-weight: 600; color: var(--hunt-text); }
+.hunt-field input, .hunt-field select {
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--hunt-border);
+  background: var(--hunt-surface);
+  color: inherit;
+  font: inherit;
+}
+.hunt-field input:focus, .hunt-field select:focus {
+  outline: none;
+  border-color: var(--hunt-accent);
+  box-shadow: 0 0 0 3px var(--hunt-accent-ring);
+}
+.hunt-field small { color: var(--hunt-text-muted); font-size: 11.5px; }
+.hunt-field small.hunt-warn {
+  color: var(--hunt-warn);
+  display: inline-flex; align-items: center; gap: 4px;
+  font-weight: 600;
+}
+
+.hunt-range {
+  -webkit-appearance: none; appearance: none;
+  height: 6px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--hunt-accent), var(--hunt-hunter));
+  outline: none; padding: 0;
+}
+.hunt-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--hunt-accent);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.hunt-range::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--hunt-accent);
+  cursor: pointer;
+}
+
+.hunt-players {
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 240px; overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--hunt-border);
+  border-radius: 12px;
+  background: var(--hunt-surface);
+}
+.hunt-player {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent; color: inherit; cursor: pointer;
+  text-align: start; gap: 8px;
+  transition: background .12s ease, border-color .12s ease, transform .1s ease;
+}
+.hunt-player:hover { background: var(--hunt-surface-strong); }
+.hunt-player.on {
+  background: linear-gradient(135deg, var(--hunt-accent), var(--hunt-accent-strong));
+  color: #fff; border-color: transparent;
+  box-shadow: 0 8px 22px -10px color-mix(in oklab, var(--hunt-accent) 70%, transparent);
+}
+.hunt-player.on .hunt-player__pos,
+.hunt-player.on .hunt-player__pts { background: rgba(255,255,255,.18); color: #fff; }
+.hunt-player__name { font-weight: 600; font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hunt-player__meta { display: inline-flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.hunt-player__pts {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px;
+  background: color-mix(in oklab, var(--hunt-accent) 16%, transparent);
+  color: var(--hunt-accent);
+}
+.hunt-player__pos {
+  font-size: 11px; opacity: .9;
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--hunt-surface-strong);
+}
+.hunt-empty-mini { padding: 14px; text-align: center; color: var(--hunt-text-muted); font-size: 12px; }
+
+.hunt-info {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  font-size: 12px;
+  padding: 10px 12px;
+  background: var(--hunt-surface);
+  border: 1px dashed var(--hunt-border);
+  border-radius: 10px;
+}
+.hunt-pill {
+  font-size: 12px; padding: 3px 10px; border-radius: 999px;
+  background: var(--hunt-surface-strong);
+  border: 1px solid var(--hunt-border);
+}
+.hunt-pill.ok  { color: var(--hunt-win);  border-color: color-mix(in oklab, var(--hunt-win) 45%, transparent); background: color-mix(in oklab, var(--hunt-win) 12%, transparent); }
+.hunt-pill.off { color: var(--hunt-text-muted); }
+
+/* Budget panel inside the dialog */
+.hunt-budget {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg,
+              color-mix(in oklab, var(--hunt-accent) 10%, transparent),
+              color-mix(in oklab, var(--hunt-hunter) 8%, transparent));
+  border: 1px solid var(--hunt-border);
+}
+.hunt-budget__row {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--hunt-surface);
+  border: 1px solid var(--hunt-border);
+}
+.hunt-budget__row--max {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, var(--hunt-accent), var(--hunt-accent-strong));
+  color: #fff;
+  border-color: transparent;
+  flex-direction: row; align-items: center; justify-content: space-between;
+}
+.hunt-budget__label {
+  font-size: 11px;
+  color: var(--hunt-text-muted);
+  text-transform: uppercase; letter-spacing: .6px;
+}
+.hunt-budget__row--max .hunt-budget__label { color: rgba(255,255,255,.85); }
+.hunt-budget__value {
+  font-weight: 800; font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.hunt-budget__value--opp { color: var(--hunt-hunter); }
+.hunt-budget__row--max .hunt-budget__value { color: #fff; font-size: 22px; }
+
+.hunt-modal__foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding-top: 4px;
+  position: sticky; bottom: 0;
+  background: inherit;
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+.hunt-page .btn {
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--hunt-border);
+  background: var(--hunt-surface-strong);
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  transition: transform .1s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.hunt-page .btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--hunt-accent) 10%, var(--hunt-surface-strong));
+  border-color: color-mix(in oklab, var(--hunt-accent) 35%, var(--hunt-border));
+}
+.hunt-page .btn:active:not(:disabled) { transform: scale(.97); }
+.hunt-page .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.hunt-page .btn--primary {
+  background: linear-gradient(135deg, var(--hunt-accent), var(--hunt-accent-strong));
+  color: #fff; border-color: transparent;
+  box-shadow: 0 10px 24px -10px color-mix(in oklab, var(--hunt-accent) 75%, transparent);
+}
+.hunt-page .btn--primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 14px 28px -10px color-mix(in oklab, var(--hunt-accent) 80%, transparent);
+}
+
+.hunt-page .btn--success {
+  background: linear-gradient(135deg, #22c55e, #15803d);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 10px 24px -10px color-mix(in oklab, var(--hunt-win) 70%, transparent);
+}
+.hunt-page .btn--success:hover:not(:disabled) { filter: brightness(1.06); }
+
+.hunt-page .btn--danger {
+  background: color-mix(in oklab, var(--hunt-lose) 14%, transparent);
+  color: var(--hunt-lose);
+  border-color: color-mix(in oklab, var(--hunt-lose) 45%, transparent);
+}
+.hunt-page .btn--danger:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--hunt-lose) 22%, transparent);
+}
+
+.hunt-page .icon-btn {
+  background: transparent; border: 0; color: inherit; cursor: pointer;
+  padding: 6px; border-radius: 8px;
+  display: inline-grid; place-items: center;
+}
+.hunt-page .icon-btn:hover { background: var(--hunt-surface-strong); }
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .hunt-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .hunt-page { gap: 14px; }
+  .hunt-hero { padding: 16px 14px; border-radius: 16px; }
+  .hunt-hero__icon { width: 38px; height: 38px; flex-basis: 38px; font-size: 18px; }
+  .hunt-hero__title h1 { font-size: 16px; }
+  .hunt-hero__meta { grid-template-columns: 1fr 1fr; }
+  .hunt-stat__value { font-size: 13.5px; }
+  .hunt-stat { padding: 8px 10px; }
+
+  .hunt-card { padding: 12px; border-radius: 14px; }
+  .hunt-avatar { width: 44px; height: 44px; font-size: 16px; }
+  .hunt-vs__metric { font-size: 11px; padding: 3px 8px; }
+  .hunt-vs__stake { font-size: 18px; }
+  .hunt-side__name { font-size: 12.5px; }
+  .hunt-side__score { font-size: 16px; }
+
+  .hunt-card__actions .btn { padding: 9px 12px; font-size: 12.5px; }
+
+  .hunt-modal { max-height: 96vh; border-radius: 16px; }
+  .hunt-modal__body { padding: 12px 14px; gap: 12px; }
+  .hunt-budget { grid-template-columns: 1fr; }
+}
+@media (max-width: 380px) {
+  .hunt-hero__meta { grid-template-columns: 1fr 1fr; }
+  .hunt-vs { grid-template-columns: 1fr; gap: 6px; }
+  .hunt-vs__center { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px; }
+}

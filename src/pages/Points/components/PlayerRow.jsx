@@ -34,6 +34,11 @@ export default function PlayerRow({ row, index, rank, maxPts, onSelect }) {
       <td className="r"><span className={`stat-num ${row.clean_sheets ? "ok" : ""}`}>{row.clean_sheets}</span></td>
       <td className="r"><span className={`stat-num ${row.ratingBonus ? "pos" : ""}`}>{row.ratingBonus || 0}</span></td>
       <td className="r"><span className={`stat-num ${row.awardPts ? "warn" : ""}`}>{row.awardPts}</span></td>
+      <td className="r">
+        <span className={`stat-num ${row.huntDelta > 0 ? "pos" : row.huntDelta < 0 ? "neg" : ""}`}>
+          {row.huntDelta > 0 ? `+${row.huntDelta}` : (row.huntDelta || 0)}
+        </span>
+      </td>
       <td className="r"><span className="pts-total">{row.total}</span></td>
     </tr>
   );

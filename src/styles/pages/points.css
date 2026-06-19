@@ -43,6 +43,7 @@
 .stat-num.neutral { color: var(--text-secondary); }
 .stat-num.ok { color: var(--success); }
 .stat-num.warn { color: var(--warning); }
+.stat-num.neg { color: var(--danger, #ef4444); }
 .pts-total {
   display: inline-block;
   padding: 4px 12px;

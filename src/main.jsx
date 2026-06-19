@@ -25,6 +25,7 @@ const TopGAPage      = lazy(() => import("./pages/TopGA"));
 const PointsPage     = lazy(() => import("./pages/Points"));
 const AdminPage      = lazy(() => import("./pages/Admin"));
 const CaptainPage    = lazy(() => import("./pages/Captain"));
+const HuntPage       = lazy(() => import("./pages/Hunt"));
 
 function LoadingScreen() {
   return <PageLoader label="Loading" minHeight={"100vh"} />;
@@ -73,6 +74,7 @@ function App() {
           <Route path="points"       element={<Suspense fallback={<LoadingScreen />}><PointsPage /></Suspense>} />
           <Route path="admin"        element={<Suspense fallback={<LoadingScreen />}><AdminPage /></Suspense>} />
           <Route path="captain"      element={<Suspense fallback={<LoadingScreen />}><CaptainPage /></Suspense>} />
+          <Route path="hunt"         element={<Suspense fallback={<LoadingScreen />}><HuntPage /></Suspense>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

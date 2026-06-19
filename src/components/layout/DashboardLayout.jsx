@@ -14,6 +14,7 @@ const BASE_NAV = [
   { to: "/best-team", icon: "ti-layout-board", label: "Squad of the Week" },
   { to: "/top-players", icon: "ti-star", label: "Top players" },
   { to: "/top-ga", icon: "ti-chart-bar", label: "Top G/A" },
+  { to: "/hunt", icon: "ti-crosshair", label: "Hunt vs Hunter" },
   { to: "/points", icon: "ti-award", label: "Points" },
 ];
 

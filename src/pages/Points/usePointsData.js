@@ -64,8 +64,7 @@ export function usePointsData({ week, year, profile, mode }) {
   return { rows, loading, maxPts, playersIndex };
 }
 
-function buildRows({ stats, awards, ratings, players, profile, mode }) {
-  // ── Stats per player ────────────────────────────────────────────────
+function buildRows({ stats, awards, ratings, players, profile, mode, huntMap }) {
   const statsMap = {};
   stats.forEach((s) => {
     if (!statsMap[s.player_id]) {
@@ -84,26 +83,18 @@ function buildRows({ stats, awards, ratings, players, profile, mode }) {
     }
   });
 
-  // ── Awards per player ───────────────────────────────────────────────
   const awardsMap = {};
   awards.forEach((a) => {
     const ids = Array.isArray(a.player_ids) && a.player_ids.length
       ? a.player_ids
       : a.player_id ? [a.player_id] : [];
-    ids.forEach((pid) => {
-      (awardsMap[pid] ||= []).push(a);
-    });
+    ids.forEach((pid) => { (awardsMap[pid] ||= []).push(a); });
   });
 
-  // ── Ratings → bonus per player ──────────────────────────────────────
-  // Week mode: one bonus = bonus(overall for that week).
-  // Season mode: sum of weekly bonuses across all weeks the player has ratings.
   const ratingBonusMap = {};
   if (mode === "week") {
     const byPlayer = {};
-    (ratings || []).forEach((r) => {
-      (byPlayer[r.to_player_id] ||= []).push(r);
-    });
+    (ratings || []).forEach((r) => { (byPlayer[r.to_player_id] ||= []).push(r); });
     Object.entries(byPlayer).forEach(([pid, list]) => {
       const player = players.find((p) => p.id === pid);
       const required = player?.role === "captain" ? 2 : 3;
@@ -111,7 +102,6 @@ function buildRows({ stats, awards, ratings, players, profile, mode }) {
       ratingBonusMap[pid] = agg ? calcRatingBonus(agg.overall) : 0;
     });
   } else {
-    // Group by (player, week)
     const byPlayerWeek = {};
     (ratings || []).forEach((r) => {
       const key = `${r.to_player_id}__${r.week_number}`;
@@ -127,7 +117,6 @@ function buildRows({ stats, awards, ratings, players, profile, mode }) {
     });
   }
 
-  // ── Build rows ──────────────────────────────────────────────────────
   return players
     .map((p) => {
       const s = statsMap[p.id];
@@ -135,6 +124,7 @@ function buildRows({ stats, awards, ratings, players, profile, mode }) {
       const statPts = calcStatPoints(s, p.position);
       const awardPts = calcAwardPoints(aw);
       const ratingBonus = ratingBonusMap[p.id] || 0;
+      const huntDelta = (huntMap && huntMap[p.id]) || 0;
       return {
         id: p.id,
         name: p.full_name,
@@ -145,7 +135,8 @@ function buildRows({ stats, awards, ratings, players, profile, mode }) {
         statPts,
         awardPts,
         ratingBonus,
-        total: statPts + awardPts + ratingBonus,
+        huntDelta,
+        total: statPts + awardPts + ratingBonus + huntDelta,
         me: p.id === profile?.id,
       };
     })

@@ -11,6 +11,7 @@ export * from "./ratings.service";
 export * from "./invites.service";
 export * from "./weekAccess.service";
 export * from "./notifications.service";
+export * from "./hunt.service";
 
 /**
  * Cached wrappers for the "read all" calls that every page hits.

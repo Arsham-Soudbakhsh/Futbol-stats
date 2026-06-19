@@ -9,6 +9,7 @@ import AwardsTab from "./components/AwardsTab";
 import InvitesTab from "./components/InvitesTab";
 import TeamsManagementTab from "./components/TeamsManagementTab";
 import BroadcastTab from "./components/BroadcastTab";
+import HuntWeekTab from "./components/HuntWeekTab";
 import "../../components/Notifications/Notifications.css";
 import "./Admin.css";
 
@@ -130,6 +131,8 @@ export default function AdminPage() {
       {tab === "broadcast" && (
         <BroadcastTab week={week} year={year} />
       )}
+
+      {tab === "hunt-week" && <HuntWeekTab week={week} year={year} />}
     </div>
   );
 }

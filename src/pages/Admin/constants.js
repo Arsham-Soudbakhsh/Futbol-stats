@@ -9,6 +9,7 @@ export const ADMIN_TABS = [
   { id: "invites", label: "Invites", icon: "ti-key" },
   { id: "teams-mgmt", label: "مدیریت تیم‌ها", icon: "ti-users-group" },
   { id: "broadcast", label: "Notifications", icon: "ti-speakerphone" },
+  { id: "hunt-week", label: "Hunt Week", icon: "ti-crosshair" },
 ];
 
 export const PLAYER_STAT_FIELDS = [
