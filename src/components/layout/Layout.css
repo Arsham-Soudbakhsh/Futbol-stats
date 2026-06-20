@@ -10,3 +10,8 @@
   color: rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.06);
 }
+
+/* ── Layout icon-size helpers (extracted from inline styles) ───────── */
+.avatar-img .ti-user        { font-size: 20px; }
+.menu-btn .ti-menu-2        { font-size: 19px; }
+.topbar-icon-btn .ti        { font-size: 17px; }

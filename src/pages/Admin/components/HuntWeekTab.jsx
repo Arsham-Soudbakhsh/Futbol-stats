@@ -7,6 +7,12 @@ import {
 } from "../../../services/hunt.service";
 import { useAuthStore } from "../../../store/authStore";
 
+const STATUSES = ["pending", "accepted", "settled", "rejected", "cancelled"];
+
+/**
+ * Admin tab: open / close the current Hunt week and bulk-settle accepted
+ * contracts once the matches are finished.
+ */
 export default function HuntWeekTab({ week, year }) {
   const { profile } = useAuthStore();
   const [wk, setWk] = useState(null);
@@ -14,11 +20,13 @@ export default function HuntWeekTab({ week, year }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
+  // Live-subscribe to the week's open/closed state.
   useEffect(() => {
-    const u = subscribeHuntWeek(week, year, setWk);
-    return () => u && u();
+    const unsub = subscribeHuntWeek(week, year, setWk);
+    return () => unsub && unsub();
   }, [week, year]);
 
+  // Reload contract list when the week changes or after an admin action.
   useEffect(() => {
     getContractsForWeek(week, year).then(setContracts);
   }, [week, year, wk?.updated_at]);
@@ -27,7 +35,9 @@ export default function HuntWeekTab({ week, year }) {
     setBusy(true); setMsg("");
     try {
       await setHuntWeekOpen(week, year, !wk?.open, profile?.id);
-    } catch (e) { setMsg("err:" + e.message); }
+    } catch (e) {
+      setMsg("err:" + e.message);
+    }
     setBusy(false);
   };
 
@@ -38,21 +48,25 @@ export default function HuntWeekTab({ week, year }) {
       const n = await settleAllForWeek(week, year);
       setMsg(`ok:${n} قرارداد تسویه شد.`);
       getContractsForWeek(week, year).then(setContracts);
-    } catch (e) { setMsg("err:" + e.message); }
+    } catch (e) {
+      setMsg("err:" + e.message);
+    }
     setBusy(false);
   };
 
   const counts = contracts.reduce((acc, c) => {
-    acc[c.status] = (acc[c.status] || 0) + 1; return acc;
+    acc[c.status] = (acc[c.status] || 0) + 1;
+    return acc;
   }, {});
 
   return (
-    <div className="card" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="card admin-card">
+      <div className="admin-card-head">
         <div>
-          <h3 style={{ margin: 0 }}>Hunt vs Hunter — Week {week}</h3>
-          <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-            وضعیت: <b style={{ color: wk?.open ? "var(--success)" : "var(--danger)" }}>
+          <h3>Hunt vs Hunter — Week {week}</h3>
+          <div className="hw-status">
+            وضعیت:{" "}
+            <b className={wk?.open ? "hw-status__on" : "hw-status__off"}>
               {wk?.open ? "باز" : "بسته"}
             </b>
           </div>
@@ -62,20 +76,24 @@ export default function HuntWeekTab({ week, year }) {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
-        {["pending","accepted","settled","rejected","cancelled"].map((s) => (
-          <div key={s} style={{ padding: 10, background: "rgba(255,255,255,.04)", borderRadius: 8, textAlign: "center" }}>
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{s}</div>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>{counts[s] || 0}</div>
+      <div className="hw-counts">
+        {STATUSES.map((s) => (
+          <div key={s} className="hw-count">
+            <div className="hw-count__label">{s}</div>
+            <div className="hw-count__value">{counts[s] || 0}</div>
           </div>
         ))}
       </div>
 
       <div>
-        <button className="btn" disabled={busy || !(counts.accepted > 0)} onClick={settle}>
+        <button
+          className="btn"
+          disabled={busy || !(counts.accepted > 0)}
+          onClick={settle}
+        >
           تسویه‌ی همه‌ی قراردادهای accept شده ({counts.accepted || 0})
         </button>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
+        <div className="hw-hint">
           بعد از پایان بازی‌های هفته و وارد کردن stats، این دکمه را بزن تا برنده‌ها مشخص شوند و امتیازها انتقال یابد.
         </div>
       </div>

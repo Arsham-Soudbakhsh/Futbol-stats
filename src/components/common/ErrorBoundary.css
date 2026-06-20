@@ -1,0 +1,39 @@
+/* ──────────────────────────────────────────────────────────────────────────
+ * ErrorBoundary fallback
+ * Rendered when a React subtree throws. Kept intentionally framework-free
+ * so it still styles correctly even if global tokens fail to load.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+.eb-root {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg, #0A0E0B);
+  color: var(--text, #F2F6F0);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.eb-card        { max-width: 420px; text-align: center; }
+.eb-icon        { font-size: 40px; margin-bottom: 12px; }
+.eb-title       { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.eb-msg         { font-size: 14px; color: var(--text-secondary, #B3BFB5); margin-bottom: 20px; }
+.eb-actions     { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+.eb-btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+}
+.eb-btn--ghost {
+  border: 1px solid var(--border, #232C25);
+  background: var(--surface, #141B16);
+  color: var(--text, #F2F6F0);
+}
+.eb-btn--primary {
+  border: none;
+  background: var(--primary, #1F7A4D);
+  color: #fff;
+}

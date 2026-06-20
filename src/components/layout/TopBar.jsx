@@ -32,7 +32,7 @@ export default function TopBar({
         aria-label="Open menu"
         type="button"
       >
-        <i className="ti ti-menu-2" style={{ fontSize: 19 }} aria-hidden="true" />
+        <i className="ti ti-menu-2" aria-hidden="true" />
       </button>
 
       <nav className="week-bar" ref={barRef} aria-label="Select week">
@@ -63,7 +63,6 @@ export default function TopBar({
       >
         <i
           className={`ti ${isDark ? "ti-sun" : "ti-moon"}`}
-          style={{ fontSize: 17 }}
           aria-hidden="true"
         />
       </button>

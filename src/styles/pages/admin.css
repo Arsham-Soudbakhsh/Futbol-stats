@@ -361,3 +361,37 @@
   .rank-pill.rank-top { font-size: 13px; }
   .pts-total { padding: 3px 10px; font-size: 11px; }
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Admin tab helpers — extracted from inline styles so layouts stay
+ * consistent and easier to theme.
+ * ────────────────────────────────────────────────────────────────── */
+
+/* Generic spacing + alignment helpers reused across Admin tab cards. */
+.admin-card        { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.admin-card-head   { display: flex; justify-content: space-between; align-items: center; }
+.admin-card-head h3 { margin: 0; }
+.admin-card-title  { margin: 0; }
+.admin-card-title--sm { font-size: 12px; margin-bottom: 10px; }
+.admin-empty       { padding: 20px 0; }
+
+/* Hunt-week status sub-line */
+.hw-status         { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+.hw-status__on     { color: var(--success); }
+.hw-status__off    { color: var(--danger); }
+
+/* Hunt-week status counts grid */
+.hw-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+.hw-count {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  text-align: center;
+}
+.hw-count__label   { font-size: 11px; color: var(--text-muted); }
+.hw-count__value   { font-size: 20px; font-weight: 700; }
+.hw-hint           { font-size: 12px; color: var(--text-muted); margin-top: 6px; }

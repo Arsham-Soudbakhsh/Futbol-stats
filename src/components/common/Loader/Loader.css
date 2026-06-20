@@ -179,3 +179,17 @@
   .fs-bar > span,
   .fs-loader__dots i { animation-duration: 2.4s; }
 }
+
+/* ── Skeleton helpers (extracted from inline styles in Skeletons.jsx) ── */
+.fs-skel-card__head-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fs-skel-card__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}

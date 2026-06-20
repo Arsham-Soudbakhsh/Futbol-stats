@@ -57,7 +57,7 @@ export default function Sidebar({ open, onClose, profile, isGuest, navItems, onS
                 />
               ) : (
                 <div className="avatar-img" aria-hidden="true">
-                  {initials || <i className="ti ti-user" style={{ fontSize: 20 }} />}
+                  {initials || <i className="ti ti-user" />}
                 </div>
               )}
             </div>
