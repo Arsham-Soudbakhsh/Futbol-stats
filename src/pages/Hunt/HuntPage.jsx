@@ -17,6 +17,7 @@ import Loader from "../../components/common/Loader";
 import NewContractDialog from "./components/NewContractDialog";
 import ContractCard from "./components/ContractCard";
 import GuestHuntView from "./GuestHuntView";
+import { usePointsData } from "../Points/usePointsData";
 import "./Hunt.css";
 
 export default function HuntPage() {
@@ -32,6 +33,15 @@ export default function HuntPage() {
   const [usedSlots, setUsedSlots] = useState(0);
   const [openNew, setOpenNew] = useState(false);
   const [err, setErr] = useState("");
+
+  // Season totals → used as the stake budget for both sides.
+  const { rows: seasonRows } = usePointsData({ week, year, profile, mode: "season" });
+  const pointsMap = useMemo(() => {
+    const m = {};
+    (seasonRows || []).forEach((r) => { m[r.id] = Math.max(0, Math.floor(r.total || 0)); });
+    return m;
+  }, [seasonRows]);
+  const myTotal = profile?.id ? (pointsMap[profile.id] || 0) : 0;
 
   useEffect(() => {
     getAllPlayers().then(setPlayers).catch(() => setPlayers([]));
@@ -70,7 +80,7 @@ export default function HuntPage() {
       });
       setOpenNew(false);
     } catch (e) {
-      setErr(e.message || "خطا در ارسال");
+      setErr(e.message || "Failed to send challenge");
     }
   };
 
@@ -96,36 +106,36 @@ export default function HuntPage() {
           <div className="hunt-hero__icon"><i className="ti ti-crosshair" /></div>
           <div className="hunt-hero__title">
             <h1>Hunt vs Hunter</h1>
-            <p>چالش هفتگی بازیکنان روی آمار — برنده امتیاز می‌گیرد، بازنده از دست می‌دهد.</p>
+            <p>Weekly head-to-head stat battles — winner takes the stake, loser pays it.</p>
           </div>
         </div>
 
         <div className="hunt-hero__meta">
           <div className="hunt-stat">
-            <span className="hunt-stat__label">وضعیت هفته</span>
+            <span className="hunt-stat__label">Week status</span>
             <span className="hunt-stat__value">
               <span className={`dot ${isOpen ? "ok" : "off"}`} />
-              {isOpen ? "باز" : "بسته"}
+              {isOpen ? "Open" : "Closed"}
             </span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">هفته / سال</span>
+            <span className="hunt-stat__label">Week / Year</span>
             <span className="hunt-stat__value">W{week} · {year}</span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">فرصت باقی‌مانده</span>
+            <span className="hunt-stat__label">Slots left</span>
             <span className="hunt-stat__value">{left}/{MAX_CONTRACTS_PER_WEEK}</span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">فعال</span>
+            <span className="hunt-stat__label">Active</span>
             <span className="hunt-stat__value">{active.length}</span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">در انتظار</span>
+            <span className="hunt-stat__label">Pending</span>
             <span className="hunt-stat__value">{pending.length}</span>
           </div>
           <div className="hunt-stat">
-            <span className="hunt-stat__label">سود خالص</span>
+            <span className="hunt-stat__label">Net P/L</span>
             <span className="hunt-stat__value" style={{
               color: totalEarnings > 0 ? "#4ade80" : totalEarnings < 0 ? "#f87171" : undefined
             }}>
@@ -139,17 +149,17 @@ export default function HuntPage() {
             className="btn btn--primary"
             disabled={!isOpen || left === 0}
             onClick={() => setOpenNew(true)}
-            title={!isOpen ? "هفته بسته است" : left === 0 ? "فرصتی باقی نیست" : ""}
+            title={!isOpen ? "Week is closed" : left === 0 ? "No slots left" : ""}
           >
-            <i className="ti ti-plus" /> چالش جدید
+            <i className="ti ti-plus" /> New challenge
           </button>
         </div>
 
         {err && <div className="hunt-err"><i className="ti ti-alert-triangle" /> {err}</div>}
       </header>
 
-      <Section title="در انتظار پاسخ" icon="ti-hourglass" count={pending.length}
-               empty="در حال حاضر چیزی منتظر نیست">
+      <Section title="Awaiting response" icon="ti-hourglass" count={pending.length}
+               empty="Nothing waiting right now">
         {pending.map((c) => (
           <ContractCard key={c.id} c={c} me={profile.id}
             onAccept={() => acceptContract(c.id, profile.id).catch((e) => setErr(e.message))}
@@ -160,11 +170,11 @@ export default function HuntPage() {
         ))}
       </Section>
 
-      <Section title="چالش‌های فعال" icon="ti-bolt" count={active.length} empty="چالش فعالی نداری">
+      <Section title="Active challenges" icon="ti-bolt" count={active.length} empty="No active challenges">
         {active.map((c) => <ContractCard key={c.id} c={c} me={profile.id} />)}
       </Section>
 
-      <Section title="تاریخچه" icon="ti-history" count={history.length} empty="چیزی برای نمایش نیست">
+      <Section title="History" icon="ti-history" count={history.length} empty="Nothing to show yet">
         {history.map((c) => <ContractCard key={c.id} c={c} me={profile.id} />)}
       </Section>
 
@@ -174,6 +184,8 @@ export default function HuntPage() {
           players={players.filter((p) => p.id !== profile.id)}
           onClose={() => setOpenNew(false)}
           onSubmit={send}
+          myTotal={myTotal}
+          pointsMap={pointsMap}
         />
       )}
     </div>

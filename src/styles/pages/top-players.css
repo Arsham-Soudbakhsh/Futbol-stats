@@ -1,4 +1,33 @@
-/* ─── Top players page ─── */
+/* ============================================================
+   Top Players page — SELF-CONTAINED
+   IMPORTANT: this stylesheet must NOT depend on points.css or
+   captain.css being loaded first. The page is reachable from
+   the sidebar without visiting Points/Captain, and the bundler
+   loads CSS lazily with the page modules. Everything the page
+   needs lives here.
+   ============================================================ */
+
+/* ─── Page shell ─────────────────────────────────────────── */
+.tp-page { display: flex; flex-direction: column; gap: 16px; }
+
+.tp-card { padding: 0; overflow: hidden; }
+.tp-header,
+.pts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklab, var(--primary) 6%, transparent),
+      transparent);
+}
+
+/* ─── Rank pill (re-declared so it doesn't rely on shared-tables.css
+       being parsed before this file in the cascade) ───────────── */
 .player-table__rank {
   width: 26px; height: 26px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -12,6 +41,7 @@
 .player-table__identity { display: flex; align-items: center; gap: 10px; }
 .player-table__you { font-size: 9px; color: var(--primary); margin-left: 4px; font-weight: 600; }
 
+/* ─── Rating ring ────────────────────────────────────────── */
 .rating-ring-wrap { position: relative; flex-shrink: 0; }
 .rating-ring-label {
   position: absolute; inset: 0;
@@ -38,23 +68,21 @@
 .avg-pill--green { background: var(--primary-soft); color: var(--primary); }
 .avg-pill--muted { background: var(--bg-secondary); color: var(--text-muted); }
 
-.no-ratings {
-  text-align: center; padding: 40px 0;
-}
+.no-ratings { text-align: center; padding: 40px 0; }
 .no-ratings__icon { font-size: 28px; color: var(--border-strong); display: block; margin-bottom: 10px; }
 .no-ratings__text { font-size: 13px; color: var(--text-muted); }
 
-/* ---- Top Players ---- */
+/* ─── Podium ─────────────────────────────────────────────── */
 .podium-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
 }
 .podium-card {
   background: var(--gradient-surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 12px;
+  border-radius: 16px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -62,14 +90,30 @@
   text-align: center;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  transition: transform .25s cubic-bezier(.2,.8,.3,1.2), border-color .25s, box-shadow .25s;
 }
+.podium-card::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 80% at 50% 0%,
+              color-mix(in oklab, var(--primary) 18%, transparent),
+              transparent 60%);
+  opacity: 0;
+  transition: opacity .25s ease;
+  pointer-events: none;
+}
+.podium-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+.podium-card:hover::before { opacity: 1; }
 .podium-card.podium-0 {
-  border-color: color-mix(in oklab, var(--warning) 40%, transparent);
-  box-shadow: 0 4px 16px color-mix(in oklab, var(--warning) 15%, transparent);
+  border-color: color-mix(in oklab, var(--warning) 45%, transparent);
+  box-shadow: 0 10px 28px -16px color-mix(in oklab, var(--warning) 55%, transparent);
 }
-.podium-medal { font-size: 22px; line-height: 1; }
+.podium-card.podium-1 { border-color: color-mix(in oklab, var(--text-muted) 35%, transparent); }
+.podium-card.podium-2 { border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+.podium-medal { font-size: 24px; line-height: 1; }
 .podium-name {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--text);
   display: flex;
@@ -83,12 +127,35 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ─── Per-player row content ─────────────────────────────── */
 .tp-player { display: flex; align-items: center; gap: 10px; min-width: 140px; }
+.tp-player__info { display: flex; flex-direction: column; min-width: 0; }
 .tp-player__sub {
   font-size: 10px;
   color: var(--text-muted);
   margin-top: 2px;
 }
+.player-line {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+}
+.player-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.player-name.is-me { font-weight: 700; color: var(--primary); }
+.you-tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* ─── Skill cell ─────────────────────────────────────────── */
 .skill-cell {
   display: flex;
   flex-direction: column;
@@ -114,3 +181,160 @@
   transition: width .5s cubic-bezier(.4,0,.2,1);
 }
 
+/* ─── Tables (re-declared standalone — must not depend on
+       shared-tables.css load order) ──────────────────────── */
+.tp-card .rt-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.tp-card .rt-wrap::-webkit-scrollbar { height: 6px; }
+.tp-card .rt-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.tp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  min-width: 620px;
+}
+.tp-table th {
+  padding: 10px 12px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  text-align: left;
+}
+.tp-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.tp-table tr:last-child td { border-bottom: none; }
+.tp-table tr.row-clickable { cursor: pointer; transition: background .18s ease; }
+.tp-table tr:hover td { background: var(--surface-hover); }
+.tp-table tr.me td { background: var(--primary-soft); }
+
+/* ─── Rank pill (used by the leaderboard) ────────────────── */
+.rank-pill {
+  width: 28px; height: 28px;
+  border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  margin: 0 auto;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.rank-pill.rank-top {
+  background: color-mix(in oklab, var(--warning) 18%, transparent);
+  border-color: color-mix(in oklab, var(--warning) 40%, transparent);
+  color: var(--warning);
+  font-size: 14px;
+}
+
+/* ─── Total badge ────────────────────────────────────────── */
+.pts-total {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+/* ─── Section header (per-position) ──────────────────────── */
+.rt-section { margin: 18px 16px 0; }
+.rt-section:first-child { margin-top: 16px; }
+.rt-section:last-child { margin-bottom: 16px; }
+.rt-section__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.rt-section__head h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.rt-section__count,
+.rt-section__note {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.rt-section__count {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* ─── Position chip on Overall leaderboard ───────────────── */
+.rt-pos-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* ─── Responsive ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .tp-header,
+  .pts-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    display: grid;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .tp-header .card-title,
+  .pts-header .card-title {
+    font-size: 13px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tp-table th { padding: 8px 10px; font-size: 9.5px; }
+  .tp-table td { padding: 9px 10px; }
+  .tp-card .tp-player { min-width: 150px; gap: 8px; }
+  .tp-card .player-name { white-space: nowrap; }
+  .tp-card .player-line { flex-wrap: nowrap; }
+
+  .rt-section { margin: 14px 12px 0; }
+  .podium-grid { gap: 8px; }
+  .podium-card { padding: 12px 8px; gap: 4px; }
+  .podium-medal { font-size: 20px; }
+  .podium-name { font-size: 11.5px; }
+  .podium-meta { font-size: 9.5px; }
+}
+
+@media (max-width: 480px) {
+  .tp-table th { padding: 7px 8px; }
+  .tp-table td { padding: 8px 8px; }
+  .rt-section { margin: 12px 10px 0; }
+  .rt-section__head { padding: 8px 10px; }
+  .rt-section__head h3 { font-size: 12.5px; }
+}

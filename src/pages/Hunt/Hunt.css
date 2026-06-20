@@ -764,3 +764,381 @@
   transform: translateY(-2px);
   box-shadow: 0 12px 24px -8px rgba(239, 68, 68, .6);
 }
+/* ============================================================
+   Hunt vs Hunter — polish pass v3
+   Smoother motion, refined palette, light-mode friendly.
+   ============================================================ */
+
+/* Reduce visual noise of the diagonal pattern in light mode. */
+@media (prefers-color-scheme: light) {
+  .hunt-hero::before { opacity: .18; }
+  .hunt-hero {
+    box-shadow: 0 16px 36px -24px color-mix(in oklab, var(--hunt-accent) 35%, transparent);
+  }
+  .hunt-card {
+    background: color-mix(in oklab, white 70%, var(--hunt-surface));
+  }
+  .hunt-vs__stake { filter: saturate(1.15); }
+  .hunt-modal__overlay { background: rgba(15, 23, 42, .45); }
+}
+:root[data-theme="light"] .hunt-page .hunt-hero::before,
+:root.light .hunt-page .hunt-hero::before,
+.theme-light .hunt-page .hunt-hero::before { opacity: .18; }
+
+/* Smoother, springier interactions everywhere. */
+.hunt-page .btn,
+.hunt-page .hunt-player,
+.hunt-page .hunt-card,
+.hunt-page .icon-btn,
+.hunt-page .guest-cta {
+  transition:
+    transform .18s cubic-bezier(.2,.8,.3,1.2),
+    background .22s ease,
+    border-color .22s ease,
+    box-shadow .25s ease,
+    color .2s ease,
+    filter .2s ease;
+}
+.hunt-page .btn:hover:not(:disabled)        { transform: translateY(-1px); }
+.hunt-page .btn:active:not(:disabled)       { transform: translateY(0) scale(.97); }
+.hunt-page .hunt-player:hover               { transform: translateX(2px); }
+.hunt-page .hunt-player.on                  { transform: translateX(2px) scale(1.005); }
+
+/* Shimmer sweep on the primary CTA. */
+.hunt-page .btn--primary { position: relative; overflow: hidden; isolation: isolate; }
+.hunt-page .btn--primary::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg,
+    transparent 25%,
+    color-mix(in oklab, white 35%, transparent) 50%,
+    transparent 75%);
+  transform: translateX(-120%);
+  transition: transform .7s ease;
+  pointer-events: none;
+}
+.hunt-page .btn--primary:hover:not(:disabled)::after { transform: translateX(120%); }
+
+/* Active challenges get a soft glow ring. */
+.hunt-card.status-accepted {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--hunt-accent) 35%, transparent) inset,
+    0 18px 40px -28px color-mix(in oklab, var(--hunt-accent) 60%, transparent);
+}
+.hunt-card.status-pending {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--hunt-warn) 30%, transparent) inset,
+    0 18px 40px -28px color-mix(in oklab, var(--hunt-warn) 50%, transparent);
+}
+
+/* Section headers — more presence. */
+.hunt-section__head {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .9px;
+  padding: 4px 6px;
+}
+.hunt-section__head i {
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--hunt-surface);
+  border: 1px solid var(--hunt-border);
+  color: var(--hunt-accent);
+}
+
+/* Hunt VS center divider line for depth. */
+.hunt-vs__center::before,
+.hunt-vs__center::after {
+  content: "";
+  height: 1px; width: 28px;
+  background: linear-gradient(90deg, transparent, var(--hunt-border), transparent);
+}
+
+/* Modal entrance: gentler bounce. */
+@keyframes hunt-pop {
+  0%   { transform: translateY(18px) scale(.96); opacity: 0; }
+  60%  { transform: translateY(-2px) scale(1.01); opacity: 1; }
+  100% { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+
+/* Guest view — align with main palette (indigo→teal instead of red→orange). */
+.guest-hunt-how {
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in oklab, var(--hunt-hunted, #14b8a6) 16%, transparent), transparent 55%),
+    radial-gradient(120% 140% at 0% 100%, color-mix(in oklab, var(--hunt-accent, #6366f1) 18%, transparent), transparent 55%),
+    var(--hunt-surface);
+  border: 1px solid var(--hunt-border);
+  border-radius: 18px;
+  padding: 20px;
+}
+.guest-hunt-step__num {
+  background: linear-gradient(135deg, var(--hunt-accent, #6366f1), var(--hunt-hunted, #14b8a6));
+  box-shadow: 0 6px 16px -6px color-mix(in oklab, var(--hunt-accent, #6366f1) 55%, transparent);
+}
+.guest-hunt-cta-card {
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklab, var(--hunt-accent, #6366f1) 8%, transparent),
+      transparent 70%),
+    var(--hunt-surface);
+  border: 1px solid var(--hunt-border);
+}
+.guest-hunt-cta-card__icon {
+  background: linear-gradient(135deg, var(--hunt-accent, #6366f1), var(--hunt-hunted, #14b8a6));
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.guest-hunt-cta-card .guest-cta {
+  background: linear-gradient(135deg, var(--hunt-accent, #6366f1), var(--hunt-accent-strong, #4338ca));
+  box-shadow: 0 10px 24px -8px color-mix(in oklab, var(--hunt-accent, #6366f1) 70%, transparent);
+  position: relative; overflow: hidden; isolation: isolate;
+}
+.guest-hunt-cta-card .guest-cta::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 25%,
+    color-mix(in oklab, white 35%, transparent) 50%, transparent 75%);
+  transform: translateX(-120%);
+  transition: transform .7s ease;
+  pointer-events: none;
+}
+.guest-hunt-cta-card .guest-cta:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 28px -8px color-mix(in oklab, var(--hunt-accent, #6366f1) 75%, transparent);
+}
+.guest-hunt-cta-card .guest-cta:hover::after { transform: translateX(120%); }
+
+/* Page entrance. */
+.fade-up { animation: hunt-fadeup .35s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes hunt-fadeup {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Honor user reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .hunt-page *, .hunt-page *::before, .hunt-page *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* ============================================================
+   Hunt vs Hunter — polish pass v4 (creative, theme-tuned)
+   - Theme-aware tokens that bind to the project's design system
+   - Subtle animated aurora behind the hero
+   - Crisper light-mode contrast, richer dark-mode glow
+   - Refined "VS" medallion, tactile button micro-physics
+   - Tighter mobile rhythm with safe-area awareness
+   ============================================================ */
+
+/* Bind Hunt accent to the project's design tokens, dark by default. */
+.hunt-page {
+  --hunt-accent:        var(--primary, #34D399);
+  --hunt-accent-strong: var(--primary-hover, #1F7A4D);
+  --hunt-accent-ring:   color-mix(in oklab, var(--hunt-accent) 32%, transparent);
+  --hunt-accent-soft:   color-mix(in oklab, var(--hunt-accent) 14%, transparent);
+
+  --hunt-hunter:        #f59e0b;
+  --hunt-hunted:        var(--info, #60A5FA);
+  --hunt-win:           var(--success, #22c55e);
+  --hunt-lose:          var(--danger, #ef4444);
+  --hunt-warn:          var(--warning, #f59e0b);
+
+  --hunt-surface:        var(--surface, rgba(255,255,255,.04));
+  --hunt-surface-strong: var(--surface-elevated, rgba(255,255,255,.07));
+  --hunt-border:         var(--border, rgba(127,127,127,.18));
+  --hunt-text:           var(--text, inherit);
+  --hunt-text-muted:     var(--text-muted, color-mix(in oklab, currentColor 55%, transparent));
+}
+
+/* Light theme — softer base, brighter aurora, deeper text contrast. */
+[data-theme="light"] .hunt-page {
+  --hunt-surface:        var(--surface, #FBFCF7);
+  --hunt-surface-strong: var(--surface-elevated, #FFFFFF);
+  --hunt-border:         var(--border, #D8DECE);
+}
+[data-theme="light"] .hunt-page .hunt-hero::before { opacity: .22; }
+[data-theme="light"] .hunt-page .hunt-hero {
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--hunt-accent) 18%, transparent) inset,
+    0 18px 38px -22px color-mix(in oklab, var(--hunt-accent) 35%, transparent);
+}
+[data-theme="light"] .hunt-page .hunt-card {
+  background: linear-gradient(180deg,
+    color-mix(in oklab, var(--hunt-surface-strong) 92%, transparent),
+    color-mix(in oklab, var(--hunt-surface) 92%, transparent));
+}
+[data-theme="light"] .hunt-page .hunt-vs__stake { filter: saturate(1.15); }
+[data-theme="light"] .hunt-page .hunt-modal__overlay { background: rgba(15, 23, 42, .45); }
+[data-theme="light"] .hunt-page .hunt-modal {
+  background: var(--surface-elevated, #ffffff);
+}
+
+/* Dark theme — richer glows. */
+[data-theme="dark"] .hunt-page .hunt-card.status-accepted {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--hunt-accent) 40%, transparent) inset,
+    0 20px 48px -28px color-mix(in oklab, var(--hunt-accent) 70%, transparent);
+}
+[data-theme="dark"] .hunt-page .hunt-modal {
+  background: var(--surface, #141B16);
+}
+
+/* ── Aurora behind hero (subtle, GPU-friendly) ─────────── */
+.hunt-hero {
+  position: relative;
+  isolation: isolate;
+}
+.hunt-hero::after {
+  content: "";
+  position: absolute; inset: -40% -20% auto auto;
+  width: 80%; height: 160%;
+  background:
+    radial-gradient(closest-side,
+      color-mix(in oklab, var(--hunt-accent) 28%, transparent),
+      transparent 70%);
+  filter: blur(38px);
+  opacity: .55;
+  pointer-events: none;
+  z-index: -1;
+  animation: hunt-aurora 14s ease-in-out infinite alternate;
+}
+@keyframes hunt-aurora {
+  0%   { transform: translate3d(0,0,0) scale(1); opacity: .45; }
+  50%  { transform: translate3d(-6%, 4%, 0) scale(1.08); opacity: .65; }
+  100% { transform: translate3d(4%, -2%, 0) scale(1.04); opacity: .5; }
+}
+
+/* ── Tightened, smoother spring interactions ───────────── */
+.hunt-page .btn,
+.hunt-page .hunt-player,
+.hunt-page .hunt-card,
+.hunt-page .icon-btn,
+.hunt-page .guest-cta {
+  transition:
+    transform .22s cubic-bezier(.2,.8,.3,1.25),
+    background .22s ease,
+    border-color .22s ease,
+    box-shadow .28s cubic-bezier(.2,.8,.3,1),
+    color .2s ease,
+    filter .2s ease;
+  will-change: transform;
+}
+.hunt-page .btn:hover:not(:disabled)  { transform: translateY(-1.5px); }
+.hunt-page .btn:active:not(:disabled) { transform: translateY(0) scale(.96); }
+
+/* ── VS medallion: a refined dot-on-line treatment ─────── */
+.hunt-vs__center { position: relative; }
+.hunt-vs__center::before,
+.hunt-vs__center::after {
+  content: "";
+  position: relative;
+  height: 1px; width: 28px;
+  background: linear-gradient(90deg, transparent, var(--hunt-border), transparent);
+}
+.hunt-vs__vs {
+  position: relative;
+  display: inline-grid; place-items: center;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--hunt-surface-strong);
+  border: 1px solid var(--hunt-border);
+  color: var(--hunt-text);
+  font-size: 11px; font-weight: 900;
+  letter-spacing: 1px;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--hunt-accent) 18%, transparent),
+    0 6px 18px -8px color-mix(in oklab, var(--hunt-accent) 45%, transparent);
+}
+
+/* Hover pulse on the role pill */
+.hunt-card:hover .hunt-role-pill { transform: translateY(-1px); }
+.hunt-role-pill { transition: transform .2s ease; }
+
+/* Score numbers tick into view on settled cards */
+.hunt-card.status-settled .hunt-side__score {
+  animation: hunt-score-in .45s cubic-bezier(.2,.8,.3,1.2) both;
+}
+@keyframes hunt-score-in {
+  from { opacity: 0; transform: translateY(4px) scale(.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Result banner — subtle ribbon shine */
+.hunt-result { position: relative; overflow: hidden; }
+.hunt-result::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg,
+    transparent 40%,
+    color-mix(in oklab, currentColor 18%, transparent) 50%,
+    transparent 60%);
+  transform: translateX(-120%);
+  animation: hunt-ribbon 2.6s cubic-bezier(.4,0,.2,1) .3s 1;
+  pointer-events: none;
+}
+@keyframes hunt-ribbon {
+  to { transform: translateX(120%); }
+}
+
+/* Section header chips */
+.hunt-section__head {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .9px;
+  padding: 4px 6px;
+}
+.hunt-section__head i {
+  padding: 6px;
+  border-radius: 9px;
+  background: var(--hunt-surface);
+  border: 1px solid var(--hunt-border);
+  color: var(--hunt-accent);
+  transition: transform .25s cubic-bezier(.2,.8,.3,1.2);
+}
+.hunt-section:hover .hunt-section__head i { transform: rotate(-6deg) scale(1.05); }
+
+/* Hover lift for player picker rows */
+.hunt-page .hunt-player:hover {
+  transform: translateX(2px);
+  border-color: color-mix(in oklab, var(--hunt-accent) 35%, transparent);
+}
+.hunt-page .hunt-player.on { transform: translateX(2px) scale(1.005); }
+
+/* Bigger, tactile primary CTA */
+.hunt-page .btn--primary { letter-spacing: .2px; }
+
+/* Refined budget panel */
+.hunt-budget {
+  background:
+    radial-gradient(80% 120% at 100% 0%,
+      color-mix(in oklab, var(--hunt-hunter) 14%, transparent), transparent 60%),
+    radial-gradient(80% 120% at 0% 100%,
+      color-mix(in oklab, var(--hunt-accent) 16%, transparent), transparent 60%),
+    var(--hunt-surface);
+}
+
+/* Mobile rhythm tightening + safe-area awareness */
+@media (max-width: 520px) {
+  .hunt-page { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
+  .hunt-hero { padding: 18px 16px; }
+  .hunt-hero__title h1 { font-size: 17px; }
+  .hunt-hero__title p { font-size: 11.5px; }
+  .hunt-hero__meta { gap: 6px; }
+  .hunt-stat { padding: 8px 10px; border-radius: 11px; }
+  .hunt-stat__label { font-size: 10px; }
+  .hunt-stat__value { font-size: 13.5px; }
+  .hunt-card { padding: 12px; border-radius: 14px; gap: 10px; }
+  .hunt-vs { gap: 8px; }
+  .hunt-vs__vs { width: 26px; height: 26px; font-size: 10px; }
+  .hunt-vs__center::before,
+  .hunt-vs__center::after { width: 22px; }
+}
+@media (max-width: 380px) {
+  .hunt-hero__meta { grid-template-columns: 1fr 1fr; }
+  .hunt-vs { grid-template-columns: 1fr; gap: 6px; }
+  .hunt-vs__center { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px; }
+}
+

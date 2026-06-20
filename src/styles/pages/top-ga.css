@@ -65,3 +65,28 @@
 .tga-bar-col { min-width: 80px; }
 .tga-player { display: flex; align-items: center; gap: 6px; min-width: 110px; }
 
+
+/* ===== Mobile: stack 3 tables vertically, only tables scroll horizontally ===== */
+@media (max-width: 640px) {
+  .tga-page { overflow-x: hidden; }
+  .tga-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .tga-toolbar { gap: 8px; }
+
+  /* Only the table itself scrolls horizontally — the page/card stays put */
+  .tga-card { overflow: hidden; }
+  .tga-card .rt-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .tga-card .tga-table {
+    min-width: 460px;
+    width: 100%;
+  }
+  .tga-bar-col { min-width: 70px; }
+  .tga-player { min-width: 100px; }
+}

@@ -431,33 +431,89 @@
   .ppd {
     top: auto; right: 0; left: 0; bottom: 0;
     width: 100%; max-width: 100%;
-    height: 92dvh; max-height: 92dvh;
+    height: 90dvh; max-height: 90dvh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 18px 18px 0 0;
+    border-radius: 22px 22px 0 0;
     transform: translateY(100%);
-    box-shadow: 0 -20px 50px -20px rgba(0,0,0,.5);
+    box-shadow: 0 -24px 60px -20px rgba(0,0,0,.55);
   }
   .ppd.is-open { transform: translateY(0); }
-  .ppd__top { padding: 12px 16px; }
-  .ppd__sticky { padding: 14px 14px 8px; }
-  .ppd__scroll { padding: 8px 14px 24px; }
-  .ppd-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .fut__frame { max-width: 260px; }
+
+  /* Drag handle */
+  .ppd::before {
+    content: "";
+    position: absolute; top: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 44px; height: 4px; border-radius: 999px;
+    background: color-mix(in oklab, var(--text-muted) 45%, transparent);
+    z-index: 2;
+  }
+  .ppd__top {
+    padding: 18px 14px 10px;
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--ppd-accent) 10%, var(--bg)) 0%,
+      var(--bg) 100%);
+  }
+  .ppd__title { font-size: 13.5px; gap: 8px; }
+  .ppd__title i { font-size: 18px; }
+  .ppd__close { width: 32px; height: 32px; border-radius: 9px; font-size: 14px; }
+
+  /* Compact sticky FUT card area so scrollable content has more room */
+  .ppd__sticky { padding: 6px 12px 8px; }
+  .ppd__scroll { padding: 4px 14px 22px; }
+
+  .fut__frame {
+    max-width: 220px;
+    aspect-ratio: 3 / 4.05;
+    padding: 12px 12px 11px;
+    border-radius: 18px;
+    margin: 0 auto;
+  }
+  .fut__top {
+    gap: 10px;
+    grid-template-columns: auto 1fr;
+  }
+  .fut__avg {
+    padding-top: 2px;
+    gap: 3px;
+    align-items: center;
+  }
+  .fut__avg-num { font-size: clamp(30px, 9.5vw, 40px); letter-spacing: -.5px; }
+  .fut__avg-lbl { font-size: 9px; letter-spacing: 1.2px; }
+  .fut__avg-pos { font-size: 9px; padding: 2px 7px; }
+  .fut__photo { border-radius: 12px; }
+  .fut__name {
+    margin-top: 8px;
+    padding-top: 7px;
+    font-size: 12.5px;
+    letter-spacing: .3px;
+  }
+  .fut__stats { margin-top: 7px; padding-top: 7px; }
+  .fut__stats--grid { gap: 3px 10px; }
+  .fut__stat-v { font-size: 14px; min-width: 24px; }
+  .fut__stat-lbl { font-size: 9.5px; letter-spacing: 1px; }
+
+  .ppd-section { margin-top: 18px; }
+  .ppd-h4 { font-size: 11px; letter-spacing: 1.1px; margin-bottom: 10px; }
+  .ppd-stats { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
+  .ppd-stat { padding: 11px 8px; }
+  .ppd-stat__v { font-size: 16px; }
+  .ppd-metric { padding: 9px 11px; border-radius: 11px; }
+  .ppd-metric__lbl { font-size: 12px; }
+  .ppd-metric__v { font-size: 12.5px; }
   .ppd-chart__row {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto;
   }
 }
 
-/* Add a drag handle for the mobile bottom sheet */
-@media (max-width: 640px) {
-  .ppd::before {
-    content: "";
-    position: absolute; top: 6px; left: 50%;
-    transform: translateX(-50%);
-    width: 42px; height: 4px; border-radius: 4px;
-    background: color-mix(in oklab, var(--text-muted) 45%, transparent);
-    z-index: 2;
-  }
-  .ppd__top { padding-top: 18px; }
+/* Extra small phones (<= 380px) — fight overflow harder */
+@media (max-width: 380px) {
+  .fut__frame { max-width: 200px; padding: 11px 11px 10px; }
+  .fut__avg-num { font-size: clamp(28px, 10vw, 34px); }
+  .fut__name { font-size: 11.5px; }
+  .fut__stat-v { font-size: 13px; }
+  .ppd-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .ppd__sticky { padding: 4px 10px 6px; }
+  .ppd__scroll { padding: 4px 12px 20px; }
 }
